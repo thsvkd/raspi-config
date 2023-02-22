@@ -577,8 +577,10 @@ do_change_timezone() {
 
 get_wifi_country() {
   CODE=${1:-0}
-  if [ -e /etc/default/crda ]; then
+  if is_installed crda && [ -e /etc/default/crda ]; then
     . /etc/default/crda
+  elif grep -q "cfg80211.ieee80211_regdom=" "$CMDLINE"; then
+    REGDOMAIN="$(sed -n 's/.*cfg80211.ieee80211_regdom=\(\S*\).*/\1/p' "$CMDLINE")"
   elif systemctl -q is-active dhcpcd; then
     REGDOMAIN="$(wpa_cli get country | tail -n 1)"
   else
@@ -611,11 +613,16 @@ do_wifi_country() {
     fi
     return 1
   fi
-  if [ -e /etc/default/crda ]; then
-    sed -i "s/^REGDOMAIN=.*$/REGDOMAIN=$REGDOMAIN/"  /etc/default/crda
-    if ! ischroot; then
-      iw reg set "$REGDOMAIN"
-    fi
+  sed -i \
+    -e "s/\s*cfg80211.ieee80211_regdom=\S*//" \
+    -e "s/\(.*\)/\1 cfg80211.ieee80211_regdom=$REGDOMAIN/" \
+    "$CMDLINE"
+  if is_installed crda && [ -e /etc/default/crda ]; then
+    # This mechanism has been removed from Bookworm and should no longer me used
+    rm -f /etc/default/crda
+  fi
+  if ! ischroot; then
+    iw reg set "$REGDOMAIN"
   fi
 
   IFACE="$(list_wlan_interfaces | head -n 1)"
