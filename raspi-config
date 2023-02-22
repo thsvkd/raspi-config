@@ -79,6 +79,14 @@ get_pi_type() {
   fi
 }
 
+gpu_has_mmu() {
+  if is_pione || is_pitwo || is_pithree || is_pizero; then
+    return 1
+  else
+    return 0
+  fi
+}
+
 is_live() {
   grep -q "boot=live" $CMDLINE
   return $?
@@ -103,8 +111,12 @@ is_kms() {
 }
 
 is_pulseaudio() {
-  PS=$(ps ax)
-  echo "$PS" | grep -q pulseaudio
+  ps ax | grep -v grep | grep -q pulseaudio
+  return $?
+}
+
+is_wayfire() {
+  ps ax | grep -v grep | grep -q wayfire
   return $?
 }
 
@@ -127,6 +139,28 @@ is_installed() {
 deb_ver () {
   ver=`cat /etc/debian_version | cut -d . -f 1`
   echo $ver
+}
+
+can_configure() {
+  if [ ! -e /etc/init.d/lightdm ]; then
+    return 1
+  fi
+  if ! is_pi; then
+    return 0
+  fi
+  if [ ! -e /boot/start_x.elf ]; then
+    return 1
+  fi
+  if [ -e $CONFIG ] && grep -q "^device_tree=$" $CONFIG; then
+    return 1
+  fi
+  if ! mountpoint -q /boot; then
+    return 1
+  fi
+  if [ ! -e /boot/config.txt ]; then
+	touch /boot/config.txt
+  fi
+  return 0
 }
 
 calc_wt_size() {
@@ -408,10 +442,18 @@ do_overscan_kms() {
 }
 
 get_blanking() {
-  if ! [ -f "/etc/X11/xorg.conf.d/10-blanking.conf" ]; then
-    echo 0
+  if is_wayfire; then
+    if grep -q dpms_timeout /home/$SUDO_USER/.config/wayfire.ini && ! grep -q dpms_timeout.*-1 /home/$SUDO_USER/.config/wayfire.ini ; then
+      echo 0
+    else
+      echo 1
+    fi
   else
-    echo 1
+    if ! [ -f "/etc/X11/xorg.conf.d/10-blanking.conf" ]; then
+      echo 0
+    else
+      echo 1
+    fi
   fi
 }
 
@@ -423,29 +465,55 @@ do_blanking() {
     DEFAULT=
     CURRENT=1
   fi
-  if [ "$INTERACTIVE" = True ]; then
-    if [ "$(dpkg -l xscreensaver | tail -n 1 | cut -d ' ' -f 1)" = "ii" ]; then
-      whiptail --msgbox "Warning: xscreensaver is installed may override raspi-config settings" 20 60 2
+  if is_wayfire; then
+    if [ "$INTERACTIVE" = True ]; then
+      whiptail --yesno "Would you like to enable screen blanking?" $DEFAULT 20 60 2
+      RET=$?
+    else
+      RET=$1
     fi
-    whiptail --yesno "Would you like to enable screen blanking?" $DEFAULT 20 60 2
-    RET=$?
+    if [ "$RET" -eq 0 ] ; then
+      if grep -q dpms_timeout /home/$SUDO_USER/.config/wayfire.ini ; then
+        sed -i 's/dpms_timeout.*/dpms_timeout=600/' /home/$SUDO_USER/.config/wayfire.ini
+      else
+        if grep -q "\[idle\]" /home/$SUDO_USER/.config/wayfire.ini ; then
+          sed -i 's/\[idle]/[idle]\ndpms_timeout=600/' /home/$SUDO_USER/.config/wayfire.ini
+        else
+          echo '[idle]\ndpms_timeout=600' >> /home/$SUDO_USER/.config/wayfire.ini
+        fi
+      fi
+      STATUS=enabled
+    elif [ "$RET" -eq 1 ]; then
+	    sed -i 's/dpms_timeout.*/dpms_timeout=-1/' /home/$SUDO_USER/.config/wayfire.ini
+      STATUS=disabled
+    else
+      return "$RET"
+    fi
   else
-    RET=$1
-  fi
-  if [ "$RET" -eq "$CURRENT" ]; then
-    ASK_TO_REBOOT=1
-  fi
-  rm -f /etc/X11/xorg.conf.d/10-blanking.conf
-  sed -i '/^\o033/d' /etc/issue
-  if [ "$RET" -eq 0 ] ; then
-    STATUS=enabled
-  elif [ "$RET" -eq 1 ]; then
-    mkdir -p /etc/X11/xorg.conf.d/
-    cp /usr/share/raspi-config/10-blanking.conf /etc/X11/xorg.conf.d/
-    printf "\\033[9;0]" >> /etc/issue
-    STATUS=disabled
-  else
-    return "$RET"
+    if [ "$INTERACTIVE" = True ]; then
+      if [ "$(dpkg -l xscreensaver | tail -n 1 | cut -d ' ' -f 1)" = "ii" ]; then
+        whiptail --msgbox "Warning: xscreensaver is installed may override raspi-config settings" 20 60 2
+      fi
+      whiptail --yesno "Would you like to enable screen blanking?" $DEFAULT 20 60 2
+      RET=$?
+    else
+      RET=$1
+    fi
+    if [ "$RET" -eq "$CURRENT" ]; then
+      ASK_TO_REBOOT=1
+    fi
+    rm -f /etc/X11/xorg.conf.d/10-blanking.conf
+    sed -i '/^\o033/d' /etc/issue
+    if [ "$RET" -eq 0 ] ; then
+      STATUS=enabled
+    elif [ "$RET" -eq 1 ]; then
+      mkdir -p /etc/X11/xorg.conf.d/
+      cp /usr/share/raspi-config/10-blanking.conf /etc/X11/xorg.conf.d/
+      printf "\\033[9;0]" >> /etc/issue
+      STATUS=disabled
+    else
+      return "$RET"
+    fi
   fi
   if [ "$INTERACTIVE" = True ]; then
     whiptail --msgbox "Screen blanking is $STATUS" 20 60 1
@@ -524,6 +592,29 @@ do_change_pass() {
   whiptail --msgbox "Password changed successfully" 20 60 1
 }
 
+update_wayfire_keyboard() {
+  MODEL=$(grep XKBMODEL /etc/default/keyboard | cut -d= -f2 | tr -d '"')
+  LAYOUT=$(grep XKBLAYOUT /etc/default/keyboard | cut -d= -f2 | tr -d '"')
+  VARIANT=$(grep XKBVARIANT /etc/default/keyboard | cut -d= -f2 | tr -d '"')
+  OPTIONS=$(grep XKBOPTIONS /etc/default/keyboard | cut -d= -f2 | tr -d '"')
+  UFILE="/home/$SUDO_USER/.config/wayfire.ini"
+  if [ -e $UFILE ] ; then
+    grep -q "\\[input\\]" $UFILE || echo "\\n[input]" >> $UFILE
+    grep -q xkb_options $UFILE && sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE || sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE
+    grep -q xkb_variant $UFILE && sed -i s/xkb_variant.*/xkb_variant=$VARIANT/ $UFILE || sed -i s/\\[input\\]/[input]\\nxkb_variant=$VARIANT/ $UFILE
+    grep -q xkb_layout $UFILE && sed -i s/xkb_layout.*/xkb_layout=$LAYOUT/ $UFILE || sed -i s/\\[input\\]/[input]\\nxkb_layout=$LAYOUT/ $UFILE
+    grep -q xkb_model $UFILE && sed -i s/xkb_model.*/xkb_model=$MODEL/ $UFILE || sed -i s/\\[input\\]/[input]\\nxkb_model=$MODEL/ $UFILE
+  fi
+  UFILE="/etc/wayfire/greeter.ini"
+  if [ -e $UFILE ] ; then
+    grep -q "\\[input\\]" $UFILE || echo "\\n[input]" >> $UFILE
+    grep -q xkb_options $UFILE && sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE || sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE
+    grep -q xkb_variant $UFILE && sed -i s/xkb_variant.*/xkb_variant=$VARIANT/ $UFILE || sed -i s/\\[input\\]/[input]\\nxkb_variant=$VARIANT/ $UFILE
+    grep -q xkb_layout $UFILE && sed -i s/xkb_layout.*/xkb_layout=$LAYOUT/ $UFILE || sed -i s/\\[input\\]/[input]\\nxkb_layout=$LAYOUT/ $UFILE
+    grep -q xkb_model $UFILE && sed -i s/xkb_model.*/xkb_model=$MODEL/ $UFILE || sed -i s/\\[input\\]/[input]\\nxkb_model=$MODEL/ $UFILE
+  fi
+}
+
 do_configure_keyboard() {
   printf "Reloading keymap. This may take a short while\n"
   rm -f /etc/console-setup/cached_*
@@ -534,6 +625,7 @@ do_configure_keyboard() {
     sed -i /etc/default/keyboard -e "s/^XKBLAYOUT.*/XKBLAYOUT=\"$KEYMAP\"/"
     dpkg-reconfigure -f noninteractive keyboard-configuration
   fi
+  update_wayfire_keyboard
   if [ "$INIT" = "systemd" ]; then
     systemctl restart keyboard-setup
   fi
@@ -618,7 +710,7 @@ do_wifi_country() {
     -e "s/\(.*\)/\1 cfg80211.ieee80211_regdom=$REGDOMAIN/" \
     "$CMDLINE"
   if is_installed crda && [ -e /etc/default/crda ]; then
-    # This mechanism has been removed from Bookworm and should no longer me used
+    # This mechanism has been removed from Bookworm and should no longer be used
     rm -f /etc/default/crda
   fi
   if ! ischroot; then
@@ -875,10 +967,18 @@ do_ssh() {
 }
 
 get_vnc() {
-  if systemctl status vncserver-x11-serviced.service  | grep -q -w active; then
-    echo 0
+  if is_wayfire; then
+    if ps ax | grep -v grep | grep -q wayvnc; then
+      echo 0
+    else
+      echo 1
+    fi
   else
-    echo 1
+    if systemctl status vncserver-x11-serviced.service  | grep -q -w active; then
+      echo 0
+    else
+      echo 1
+    fi
   fi
 }
 
@@ -896,14 +996,48 @@ do_vnc() {
     APT_GET_FLAGS="-y"
   fi
   if [ $RET -eq 0 ]; then
-    if is_installed realvnc-vnc-server || apt-get install "$APT_GET_FLAGS" realvnc-vnc-server; then
-      systemctl enable vncserver-x11-serviced.service &&
-      systemctl start vncserver-x11-serviced.service &&
-      STATUS=enabled
+    if is_installed wayvnc; then
+      pkill wayvnc
+      if [ -e /etc/xdg/autostart/wayvnc.desktop ] ; then
+        rm /etc/xdg/autostart/wayvnc.desktop
+      fi
+    fi
+    if is_installed realvnc-vnc-server; then
+      systemctl disable vncserver-x11-serviced.service
+      systemctl stop vncserver-x11-serviced.service
+    fi
+    if is_wayfire; then
+      if is_installed wayvnc || apt-get install "$APT_GET_FLAGS" wayvnc; then
+        cat << EOF > /etc/xdg/autostart/wayvnc.desktop
+[Desktop Entry]
+Type=Application
+Name=wayvnc
+Comment=Start wayvnc
+NoDisplay=true
+Exec=/usr/bin/wayvnc 0.0.0.0
+OnlyShowIn=wayfire
+EOF
+        sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID WAYLAND_DISPLAY=wayland-1 wayvnc 0.0.0.0 &
+        STATUS=enabled
+      else
+        return 1
+      fi
     else
-      return 1
+      if is_installed realvnc-vnc-server || apt-get install "$APT_GET_FLAGS" realvnc-vnc-server; then
+        systemctl enable vncserver-x11-serviced.service &&
+        systemctl start vncserver-x11-serviced.service &&
+        STATUS=enabled
+      else
+        return 1
+      fi
     fi
   elif [ $RET -eq 1 ]; then
+    if is_installed wayvnc; then
+      pkill wayvnc
+      if [ -e /etc/xdg/autostart/wayvnc.desktop ] ; then
+        rm /etc/xdg/autostart/wayvnc.desktop
+      fi
+    fi
     if is_installed realvnc-vnc-server; then
       systemctl disable vncserver-x11-serviced.service
       systemctl stop vncserver-x11-serviced.service
@@ -1242,9 +1376,11 @@ do_composite() {
 }
 
 get_leds () {
-  if grep -q "\\[actpwr\\]" /sys/class/leds/led0/trigger ; then
+  if [ ! -e /sys/class/leds/ACT/trigger ] ; then
+    echo -1
+  elif grep -q "\\[actpwr\\]" /sys/class/leds/ACT/trigger ; then
     echo 0
-  elif grep -q "\\[default-on\\]" /sys/class/leds/led0/trigger ; then
+  elif grep -q "\\[default-on\\]" /sys/class/leds/ACT/trigger ; then
     echo 1
   else
     echo -1
@@ -1282,7 +1418,7 @@ do_leds() {
   if ! grep -q "dtparam=act_led_trigger" $CONFIG ; then
     sed $CONFIG -i -e "\$adtparam=act_led_trigger=$LEDSET"
   fi
-  echo $LEDSET | tee /sys/class/leds/led0/trigger > /dev/null
+  echo $LEDSET | tee /sys/class/leds/ACT/trigger > /dev/null
   if [ "$INTERACTIVE" = True ]; then
     whiptail --msgbox "The power LED will $STATUS" 20 60 1
   fi
@@ -2040,89 +2176,115 @@ do_glamor() {
 }
 
 do_wayland() {
-  DEFAULT=--defaultno
-  CURRENT=0
-  if grep -q "^user-session=LXDE-pi-wayland" /etc/lightdm/lightdm.conf ; then
-    DEFAULT=
-    CURRENT=1
-  fi
   if [ "$INTERACTIVE" = True ]; then
-    whiptail --yesno "Would you like the Wayland backend to be enabled?" $DEFAULT 20 60 2
-    RET=$?
+    RET=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Wayland Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+        "W1 X11" "Openbox window manager with X11 backend" \
+        "W2 Wayfire" "Wayfire window manager with Wayland backend" \
+        3>&1 1>&2 2>&3)
   else
     RET=$1
+    true
   fi
-  if [ $RET -eq $CURRENT ]; then
+  if [ $? -eq 0 ]; then
+    case "$RET" in
+      W1*)
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?user-session.*/user-session=LXDE-pi-x/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?autologin-session.*/autologin-session=LXDE-pi-x/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?greeter-session.*/greeter-session=pi-greeter/"
+        if [ -e "/var/lib/AccountsService/users/$USER" ] ; then
+          sed "/var/lib/AccountsService/users/$USER" -i -e "s/XSession=.*/XSession=LXDE-pi-x/"
+        fi
+        STATUS="Openbox on X11"
+        ;;
+      W2*)
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?user-session.*/user-session=LXDE-pi-wayfire/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?autologin-session.*/autologin-session=LXDE-pi-wayfire/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?greeter-session.*/greeter-session=pi-greeter-wayfire/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?fallback-test.*/fallback-test=\/usr\/bin\/xfallback.sh/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?fallback-session.*/fallback-session=LXDE-pi-x/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?fallback-greeter.*/fallback-greeter=pi-greeter/"
+        if [ -e "/var/lib/AccountsService/users/$USER" ] ; then
+          sed "/var/lib/AccountsService/users/$USER" -i -e "s/XSession=.*/XSession=LXDE-pi-wayfire/"
+        fi
+        STATUS="Wayfire on Wayland"
+        ;;
+      *)
+        whiptail --msgbox "Programmer error, unrecognised boot option" 20 60 2
+        return 1
+        ;;
+    esac
     ASK_TO_REBOOT=1
-  fi
-  if [ $RET -eq 0 ]; then
-    sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?user-session.*/user-session=LXDE-pi-wayland/"
-    sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?autologin-session.*/autologin-session=LXDE-pi-wayland/"
-    if [ -e "/var/lib/AccountsService/users/$USER" ] ; then
-      sed "/var/lib/AccountsService/users/$USER" -i -e "s/XSession=.*/XSession=LXDE-pi-wayland/"
-    fi
-    STATUS=enabled
-  elif [ $RET -eq 1 ]; then
-    sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?user-session.*/user-session=LXDE-pi-x/"
-    sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?autologin-session.*/autologin-session=LXDE-pi-x/"
-    if [ -e "/var/lib/AccountsService/users/$USER" ] ; then
-      sed "/var/lib/AccountsService/users/$USER" -i -e "s/XSession=.*/XSession=LXDE-pi-x/"
-    fi
-    STATUS=disabled
   else
-    return $RET
+    return 0
   fi
   if [ "$INTERACTIVE" = True ]; then
-    whiptail --msgbox "Wayland is $STATUS" 20 60 1
+    whiptail --msgbox "$STATUS is active" 20 60 1
   fi
 }
 
-do_netconf() {
-  systemctl -q is-enabled NetworkManager > /dev/null 2>&1
-  NMENABLED=$?
-  systemctl -q is-enabled dhcpcd > /dev/null 2>&1
-  DHENABLED=$?
+do_audioconf() {
+  sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q is-enabled pipewire-pulse 2>&1 > /dev/null
+  PPENABLED=$?
+  sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q is-enabled pulseaudio 2>&1 > /dev/null
+  PAENABLED=$?
   if [ "$INTERACTIVE" = True ]; then
     DEFAULT=1
-    if [ "$NMENABLED" = 0 ] ; then
+    if [ "$PPENABLED" = 0 ] ; then
       DEFAULT=2
     fi
-    if is_installed dhcpcd5 ; then
-      OPTIONS="1 dhcpcd"
+    if is_installed pulseaudio ; then
+      OPTIONS="1 pulseaudio"
     fi
-    if is_installed network-manager ; then
-      OPTIONS="$OPTIONS 2 NetworkManager"
+    if is_installed pipewire-pulse ; then
+      OPTIONS="$OPTIONS 2 pipewire"
     fi
     #shellcheck disable=2086
-    NMOPT=$(whiptail --menu "Select the network configuration to use" 20 60 10 $OPTIONS --default-item "$DEFAULT" 3>&1 1>&2 2>&3)
+    PPOPT=$(whiptail --menu "Select the audio configuration to use" 20 60 10 $OPTIONS --default-item "$DEFAULT" 3>&1 1>&2 2>&3)
     RET="$?"
   else
-    NMOPT="$1"
+    PPOPT="$1"
     RET=0
   fi
   if [ "$RET" -ne 0 ] ; then
     return
   fi
 
-  if [ "$NMOPT" -eq 2 ] ; then # NetworkManager selected
-    ENABLE_SERVICE=NetworkManager
-    DISABLE_SERVICE=dhcpcd
-    NETCON="NetworkManager"
-  else # dhcpcd selected
-    ENABLE_SERVICE=dhcpcd
-    DISABLE_SERVICE=NetworkManager
-    NETCON="dhcpcd"
+  if [ "$PPOPT" -eq 2 ] ; then # pipewire selected
+    systemctl --global -q disable pulseaudio
+    systemctl --global -q enable pipewire-pulse
+    systemctl --global -q enable wireplumber
+    if [ "$INIT" = "systemd" ]; then
+      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop pulseaudio
+      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start pipewire-pulse
+      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start wireplumber
+    fi
+    if [ -e /usr/share/doc/pipewire/examples/alsa.conf.d/99-pipewire-default.conf ] ; then
+      cp /usr/share/doc/pipewire/examples/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d/
+    fi
+    AUDCON="pipewire"
+    if [ "$PAENABLED" = 0 ] ; then
+      ASK_TO_REBOOT=1
+    fi
+  else # pulse selected
+    systemctl --global -q disable pipewire-pulse
+    systemctl --global -q disable wireplumber
+    systemctl --global -q enable pulseaudio
+    if [ "$INIT" = "systemd" ]; then
+      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop pipewire-pulse
+      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop wireplumber
+      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start pulseaudio
+    fi
+    if [ -e /etc/alsa/conf.d/99-pipewire-default.conf ] ; then
+      rm /etc/alsa/conf.d/99-pipewire-default.conf
+    fi
+    AUDCON="pulseaudio"
+    if [ "$PPENABLED" = 0 ] ; then
+      ASK_TO_REBOOT=1
+    fi
   fi
 
-  systemctl -q disable "$DISABLE_SERVICE" 2> /dev/null
-  systemctl -q enable "$ENABLE_SERVICE"
-  if [ "$INIT" = "systemd" ]; then
-    systemctl -q stop "$DISABLE_SERVICE" 2> /dev/null
-    systemctl -q --no-block start "$ENABLE_SERVICE"
-  fi
-  ASK_TO_REBOOT=1
   if [ "$INTERACTIVE" = True ]; then
-    whiptail --msgbox "$NETCON is active" 20 60 1
+    whiptail --msgbox "$AUDCON is active" 20 60 1
   fi
 }
 
@@ -2341,10 +2503,20 @@ do_resolution() {
 }
 
 get_vnc_resolution() {
-  if [ -e /etc/xdg/autostart/vnc_xrandr.desktop ] ; then
-      echo $(grep fb /etc/xdg/autostart/vnc_xrandr.desktop | cut -f 15 -d ' ')
+  if is_wayfire ; then
+    W=$(grep ^headless_width /home/$SUDO_USER/.config/wayfire.ini | grep -o [0-9]*)
+    H=$(grep ^headless_height /home/$SUDO_USER/.config/wayfire.ini | grep -o [0-9]*)
+    if ! [ -z $W ] && ! [ -z $H ] ; then
+      echo $W"x"$H
+    else
+      echo "1280x720"
+    fi
   else
+    if [ -e /etc/xdg/autostart/vnc_xrandr.desktop ] ; then
+      echo $(grep fb /etc/xdg/autostart/vnc_xrandr.desktop | cut -f 15 -d ' ')
+    else
       echo ""
+    fi
   fi
 }
 
@@ -2364,7 +2536,21 @@ do_vnc_resolution() {
   if [ $RET -eq 1 ]; then
     return 0
   elif [ $RET -eq 0 ]; then
-    cat > /etc/xdg/autostart/vnc_xrandr.desktop << EOF
+    if is_wayfire ; then
+      W=$(echo "$FUN" | cut -d x -f 1)
+      H=$(echo "$FUN" | cut -d x -f 2)
+      if grep -q ^headless_width /home/$SUDO_USER/.config/wayfire.ini ; then
+        sed -i "s/headless_width.*/headless_width = $W/" /home/$SUDO_USER/.config/wayfire.ini
+        sed -i "s/headless_height.*/headless_height = $H/" /home/$SUDO_USER/.config/wayfire.ini
+      else
+        if grep -q "\[output\]" /home/$SUDO_USER/.config/wayfire.ini ; then
+          sed -i "s/\[output]/[output]\nheadless_width = $W\nheadless_height = $H/" /home/$SUDO_USER/.config/wayfire.ini
+        else
+          echo "\n[output]\nheadless_width = $W\nheadless_height = $H" >> /home/$SUDO_USER/.config/wayfire.ini
+        fi
+      fi
+    else
+      cat > /etc/xdg/autostart/vnc_xrandr.desktop << EOF
 [Desktop Entry]
 Type=Application
 Name=vnc_xrandr
@@ -2372,6 +2558,7 @@ Comment=Set resolution for VNC
 NoDisplay=true
 Exec=sh -c "if ! (xrandr | grep -q -w connected) ; then /usr/bin/xrandr --fb $FUN ; fi"
 EOF
+    fi
     if [ "$INTERACTIVE" = True ]; then
       whiptail --msgbox "The resolution is set to $FUN" 20 60 1
       ASK_TO_REBOOT=1
@@ -3022,22 +3209,31 @@ do_system_menu() {
 
 do_display_menu() {
   if is_pi ; then
-    if is_kms; then
-    FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Display Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-      "D2 Underscan" "Remove black border around screen" \
-      "D4 Screen Blanking" "Enable/disable screen blanking" \
-      "D5 VNC Resolution" "Set resolution for headless use" \
-      "D6 Composite" "Set options for composite output" \
-      3>&1 1>&2 2>&3)
+    if is_wayfire; then
+      FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Display Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+        "D2 Underscan" "Remove black border around screen" \
+        "D4 Screen Blanking" "Enable/disable screen blanking" \
+        "D5 VNC Resolution" "Set resolution for headless use" \
+        "D6 Composite" "Set options for composite output" \
+        3>&1 1>&2 2>&3)
     else
-    FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Display Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-      "D1 Resolution" "Set a specific screen resolution" \
-      "D2 Underscan" "Remove black border around screen" \
-      "D3 Pixel Doubling" "Enable/disable 2x2 pixel mapping" \
-      "D4 Screen Blanking" "Enable/disable screen blanking" \
-      "D5 VNC Resolution" "Set resolution for headless use" \
-      "D6 Composite" "Set options for composite output" \
-      3>&1 1>&2 2>&3)
+      if is_kms; then
+        FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Display Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+          "D2 Underscan" "Remove black border around screen" \
+          "D4 Screen Blanking" "Enable/disable screen blanking" \
+          "D5 VNC Resolution" "Set resolution for headless use" \
+          "D6 Composite" "Set options for composite output" \
+          3>&1 1>&2 2>&3)
+      else
+        FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Display Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+          "D1 Resolution" "Set a specific screen resolution" \
+          "D2 Underscan" "Remove black border around screen" \
+          "D3 Pixel Doubling" "Enable/disable 2x2 pixel mapping" \
+          "D4 Screen Blanking" "Enable/disable screen blanking" \
+          "D5 VNC Resolution" "Set resolution for headless use" \
+          "D6 Composite" "Set options for composite output" \
+          3>&1 1>&2 2>&3)
+      fi
     fi
   else
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Display Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
@@ -3074,14 +3270,13 @@ do_display_menu() {
 do_interface_menu() {
   if is_pi ; then
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Interfacing Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-      "I1 Legacy Camera" "Enable/disable legacy camera support" \
-      "I2 SSH" "Enable/disable remote command line access using SSH" \
-      "I3 VNC" "Enable/disable graphical remote access using RealVNC" \
-      "I4 SPI" "Enable/disable automatic loading of SPI kernel module" \
-      "I5 I2C" "Enable/disable automatic loading of I2C kernel module" \
-      "I6 Serial Port" "Enable/disable shell messages on the serial connection" \
-      "I7 1-Wire" "Enable/disable one-wire interface" \
-      "I8 Remote GPIO" "Enable/disable remote access to GPIO pins" \
+      "I1 SSH" "Enable/disable remote command line access using SSH" \
+      "I2 VNC" "Enable/disable graphical remote desktop access" \
+      "I3 SPI" "Enable/disable automatic loading of SPI kernel module" \
+      "I4 I2C" "Enable/disable automatic loading of I2C kernel module" \
+      "I5 Serial Port" "Enable/disable shell messages on the serial connection" \
+      "I6 1-Wire" "Enable/disable one-wire interface" \
+      "I7 Remote GPIO" "Enable/disable remote access to GPIO pins" \
       3>&1 1>&2 2>&3)
   else
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Interfacing Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
@@ -3093,14 +3288,13 @@ do_interface_menu() {
     return 0
   elif [ $RET -eq 0 ]; then
     case "$FUN" in
-      I1\ *) do_legacy ;;
-      I2\ *) do_ssh ;;
-      I3\ *) do_vnc ;;
-      I4\ *) do_spi ;;
-      I5\ *) do_i2c ;;
-      I6\ *) do_serial ;;
-      I7\ *) do_onewire ;;
-      I8\ *) do_rgpio ;;
+      I1\ *) do_ssh ;;
+      I2\ *) do_vnc ;;
+      I3\ *) do_spi ;;
+      I4\ *) do_i2c ;;
+      I5\ *) do_serial ;;
+      I6\ *) do_onewire ;;
+      I7\ *) do_rgpio ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
@@ -3157,8 +3351,8 @@ do_advanced_menu() {
       "A5 Network Proxy Settings" "Configure network proxy settings" \
       "A6 Boot Order" "Choose network or USB device boot" \
       "A7 Bootloader Version" "Select latest or default boot ROM software" \
-      "A9 Wayland" "Enable experimental Wayland backend" \
-      "AA Network Config" "Set network configuration tool" \
+      "A9 Wayland" "Switch between X and Wayland backends" \
+      "AA Audio Config" "Set audio control system" \
       3>&1 1>&2 2>&3)
   elif is_pi ; then
     if is_kms; then
@@ -3169,8 +3363,8 @@ do_advanced_menu() {
       "A4 Network Interface Names" "Enable/disable predictable network i/f names" \
       "A5 Network Proxy Settings" "Configure network proxy settings" \
       "A8 Glamor" "Enable/disable glamor graphics acceleration" \
-      "A9 Wayland" "Enable experimental Wayland backend" \
-      "AA Network Config" "Set network configuration tool" \
+      "A9 Wayland" "Switch between X and Wayland backends" \
+      "AA Audio Config" "Set audio control system" \
       3>&1 1>&2 2>&3)
     else
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
@@ -3179,14 +3373,14 @@ do_advanced_menu() {
       "A4 Network Interface Names" "Enable/disable predictable network i/f names" \
       "A5 Network Proxy Settings" "Configure network proxy settings" \
       "A8 Glamor" "Enable/disable glamor graphics acceleration" \
-      "AA Network Config" "Set network configuration tool" \
+      "AA Audio Config" "Set audio control system" \
       3>&1 1>&2 2>&3)
     fi
   else
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
       "A4 Network Interface Names" "Enable/disable predictable network i/f names" \
       "A5 Network Proxy Settings" "Configure network proxy settings" \
-      "AA Network Config" "Set network configuration tool" \
+      "AA Audio Config" "Set audio control system" \
       3>&1 1>&2 2>&3)
   fi
   RET=$?
@@ -3203,7 +3397,7 @@ do_advanced_menu() {
       A7\ *) do_boot_rom ;;
       A8\ *) do_glamor ;;
       A9\ *) do_wayland ;;
-      AA\ *) do_netconf ;;
+      AA\ *) do_audioconf ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
