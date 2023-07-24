@@ -634,6 +634,26 @@ do_configure_keyboard() {
   return 0
 }
 
+do_change_keyboard_rc_gui () {
+  grep -q XKBMODEL /etc/default/keyboard && sed -i "s/XKBMODEL=.*/XKBMODEL=\"$1\"/g" /etc/default/keyboard || echo "XKBMODEL=\"$1\"" >> /etc/default/keyboard
+  grep -q XKBLAYOUT /etc/default/keyboard && sed -i "s/XKBLAYOUT=.*/XKBLAYOUT=\"$2\"/g" /etc/default/keyboard || echo "XKBLAYOUT=\"$2\"" >> /etc/default/keyboard
+  grep -q XKBVARIANT /etc/default/keyboard && sed -i "s/XKBVARIANT=.*/XKBVARIANT=\"$3\"/g" /etc/default/keyboard || echo "XKBVARIANT=\"$3\"" >> /etc/default/keyboard
+  update_wayfire_keyboard
+  if ! is_wayfire ; then
+    invoke-rc.d keyboard-setup start
+  fi
+  setsid sh -c 'exec setupcon -k --force <> /dev/tty1 >&0 2>&1'
+  if ! is_wayfire ; then
+    udevadm trigger --subsystem-match=input --action=change
+    udevadm settle
+    KBSTR = "-model $1 -layout $2"
+    if [ ! -z "$3" ] ; then
+      KBSTR = "$KBSTR -variant $3"
+    fi
+    setxkbmap "$KBSTR"
+  fi
+}
+
 do_change_locale() {
   if [ "$INTERACTIVE" = True ]; then
     dpkg-reconfigure locales
@@ -653,6 +673,13 @@ do_change_locale() {
   fi
 }
 
+do_change_locale_rc_gui() {
+  sed -i "s/^\([^#].*\)/# \1/g" /etc/locale.gen
+  sed -i "s/^# \($1\s\)/\1/g" /etc/locale.gen
+  locale-gen
+  LC_ALL=$1 LANG=$1 LANGUAGE=$1 update-locale LANG=$1 LC_ALL=$1 LANGUAGE=$1
+}
+
 do_change_timezone() {
   if [ "$INTERACTIVE" = True ]; then
     dpkg-reconfigure tzdata
@@ -665,6 +692,12 @@ do_change_timezone() {
     echo "$TIMEZONE" > /etc/timezone
     dpkg-reconfigure -f noninteractive tzdata 2> /dev/null
   fi
+}
+
+do_change_timezone_rc_gui() {
+  echo $1 | tee /etc/timezone
+  rm /etc/localtime
+  dpkg-reconfigure --frontend noninteractive tzdata
 }
 
 get_wifi_country() {
