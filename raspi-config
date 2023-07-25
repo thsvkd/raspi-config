@@ -163,6 +163,14 @@ can_configure() {
   return 0
 }
 
+wayfire_file() {
+  if [ -z $SUDO_USER ]; then
+    echo $HOME/.config/wayfire.ini
+  else
+    echo /home/$SUDO_USER/.config/wayfire.ini
+  fi
+}
+
 calc_wt_size() {
   # NOTE: it's tempting to redirect stderr to /dev/null, so supress error 
   # output from tput. However in this case, tput detects neither stdout or 
@@ -443,7 +451,7 @@ do_overscan_kms() {
 
 get_blanking() {
   if is_wayfire; then
-    if grep -q dpms_timeout /home/$SUDO_USER/.config/wayfire.ini && ! grep -q dpms_timeout.*-1 /home/$SUDO_USER/.config/wayfire.ini ; then
+    if grep -q dpms_timeout $(wayfire_file) && ! grep -q dpms_timeout.*-1 $(wayfire_file) ; then
       echo 0
     else
       echo 1
@@ -473,18 +481,18 @@ do_blanking() {
       RET=$1
     fi
     if [ "$RET" -eq 0 ] ; then
-      if grep -q dpms_timeout /home/$SUDO_USER/.config/wayfire.ini ; then
-        sed -i 's/dpms_timeout.*/dpms_timeout=600/' /home/$SUDO_USER/.config/wayfire.ini
+      if grep -q dpms_timeout $(wayfire_file) ; then
+        sed -i 's/dpms_timeout.*/dpms_timeout=600/' $(wayfire_file)
       else
-        if grep -q "\[idle\]" /home/$SUDO_USER/.config/wayfire.ini ; then
-          sed -i 's/\[idle]/[idle]\ndpms_timeout=600/' /home/$SUDO_USER/.config/wayfire.ini
+        if grep -q "\[idle\]" $(wayfire_file) ; then
+          sed -i 's/\[idle]/[idle]\ndpms_timeout=600/' $(wayfire_file)
         else
-          echo '[idle]\ndpms_timeout=600' >> /home/$SUDO_USER/.config/wayfire.ini
+          echo '[idle]\ndpms_timeout=600' >> $(wayfire_file)
         fi
       fi
       STATUS=enabled
     elif [ "$RET" -eq 1 ]; then
-	    sed -i 's/dpms_timeout.*/dpms_timeout=-1/' /home/$SUDO_USER/.config/wayfire.ini
+	    sed -i 's/dpms_timeout.*/dpms_timeout=-1/' $(wayfire_file)
       STATUS=disabled
     else
       return "$RET"
@@ -597,7 +605,7 @@ update_wayfire_keyboard() {
   LAYOUT=$(grep XKBLAYOUT /etc/default/keyboard | cut -d= -f2 | tr -d '"')
   VARIANT=$(grep XKBVARIANT /etc/default/keyboard | cut -d= -f2 | tr -d '"')
   OPTIONS=$(grep XKBOPTIONS /etc/default/keyboard | cut -d= -f2 | tr -d '"')
-  UFILE="/home/$SUDO_USER/.config/wayfire.ini"
+  UFILE=$(wayfire_file)
   if [ -e $UFILE ] ; then
     grep -q "\\[input\\]" $UFILE || echo "\\n[input]" >> $UFILE
     grep -q xkb_options $UFILE && sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE || sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE
@@ -2537,8 +2545,8 @@ do_resolution() {
 
 get_vnc_resolution() {
   if is_wayfire ; then
-    W=$(grep ^headless_width /home/$SUDO_USER/.config/wayfire.ini | grep -o [0-9]*)
-    H=$(grep ^headless_height /home/$SUDO_USER/.config/wayfire.ini | grep -o [0-9]*)
+    W=$(grep ^headless_width $(wayfire_file) | grep -o [0-9]*)
+    H=$(grep ^headless_height $(wayfire_file) | grep -o [0-9]*)
     if ! [ -z $W ] && ! [ -z $H ] ; then
       echo $W"x"$H
     else
@@ -2572,14 +2580,14 @@ do_vnc_resolution() {
     if is_wayfire ; then
       W=$(echo "$FUN" | cut -d x -f 1)
       H=$(echo "$FUN" | cut -d x -f 2)
-      if grep -q ^headless_width /home/$SUDO_USER/.config/wayfire.ini ; then
-        sed -i "s/headless_width.*/headless_width = $W/" /home/$SUDO_USER/.config/wayfire.ini
-        sed -i "s/headless_height.*/headless_height = $H/" /home/$SUDO_USER/.config/wayfire.ini
+      if grep -q ^headless_width $(wayfire_file) ; then
+        sed -i "s/headless_width.*/headless_width = $W/" $(wayfire_file)
+        sed -i "s/headless_height.*/headless_height = $H/" $(wayfire_file)
       else
-        if grep -q "\[output\]" /home/$SUDO_USER/.config/wayfire.ini ; then
-          sed -i "s/\[output]/[output]\nheadless_width = $W\nheadless_height = $H/" /home/$SUDO_USER/.config/wayfire.ini
+        if grep -q "\[output\]" $(wayfire_file) ; then
+          sed -i "s/\[output]/[output]\nheadless_width = $W\nheadless_height = $H/" $(wayfire_file)
         else
-          echo "\n[output]\nheadless_width = $W\nheadless_height = $H" >> /home/$SUDO_USER/.config/wayfire.ini
+          echo "\n[output]\nheadless_width = $W\nheadless_height = $H" >> $(wayfire_file)
         fi
       fi
     else
