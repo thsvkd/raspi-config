@@ -1048,6 +1048,22 @@ do_vnc() {
       systemctl stop vncserver-x11-serviced.service
     fi
     if is_wayfire; then
+      if ! [ -e /home/$SUDO_USER/.config/wayvnc/config ] ; then
+        mkdir -p /home/$SUDO_USER/.config/wayvnc/
+        HOSTNAME=$(cat /etc/hostname)
+        IP=$(ifconfig | grep inet | head -n 1 | cut -d ' ' -f 10)
+        echo "Generating key..."
+        openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout /home/$SUDO_USER/.config/wayvnc/key.pem -out /home/$SUDO_USER/.config/wayvnc/cert.pem -subj /CN=$HOSTNAME -addext subjectAltName=DNS:$HOSTNAME,DNS:$HOSTNAME,IP:$IP 2> /dev/null
+        echo "Done"
+        cat << EOF > /home/$SUDO_USER/.config/wayvnc/config
+address=0.0.0.0
+enable_auth=true
+enable_pam=true
+private_key_file=/home/$SUDO_USER/.config/wayvnc/key.pem
+certificate_file=/home/$SUDO_USER/.config/wayvnc/cert.pem
+EOF
+        chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/.config/wayvnc/
+      fi
       if is_installed wayvnc || apt-get install "$APT_GET_FLAGS" wayvnc; then
         cat << EOF > /etc/xdg/autostart/wayvnc.desktop
 [Desktop Entry]
@@ -1055,10 +1071,10 @@ Type=Application
 Name=wayvnc
 Comment=Start wayvnc
 NoDisplay=true
-Exec=/usr/bin/wayvnc 0.0.0.0
+Exec=/usr/bin/wayvnc
 OnlyShowIn=wayfire
 EOF
-        sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID WAYLAND_DISPLAY=wayland-1 wayvnc 0.0.0.0 &
+        sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID WAYLAND_DISPLAY=wayland-1 wayvnc &
         STATUS=enabled
       else
         return 1
@@ -1077,6 +1093,9 @@ EOF
       pkill wayvnc
       if [ -e /etc/xdg/autostart/wayvnc.desktop ] ; then
         rm /etc/xdg/autostart/wayvnc.desktop
+      fi
+      if [ -e /home/$SUDO_USER/.config/wayvnc/config ] ; then
+        rm -rf /home/$SUDO_USER/.config/wayvnc/
       fi
     fi
     if is_installed realvnc-vnc-server; then
