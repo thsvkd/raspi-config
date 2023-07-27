@@ -1048,13 +1048,8 @@ do_vnc() {
       systemctl stop vncserver-x11-serviced.service
     fi
     if is_wayfire; then
+      mkdir -p /home/$SUDO_USER/.config/wayvnc/
       if ! [ -e /home/$SUDO_USER/.config/wayvnc/config ] ; then
-        mkdir -p /home/$SUDO_USER/.config/wayvnc/
-        HOSTNAME=$(cat /etc/hostname)
-        IP=$(ifconfig | grep inet | head -n 1 | cut -d ' ' -f 10)
-        echo "Generating key..."
-        openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout /home/$SUDO_USER/.config/wayvnc/key.pem -out /home/$SUDO_USER/.config/wayvnc/cert.pem -subj /CN=$HOSTNAME -addext subjectAltName=DNS:$HOSTNAME,DNS:$HOSTNAME,IP:$IP 2> /dev/null
-        echo "Done"
         cat << EOF > /home/$SUDO_USER/.config/wayvnc/config
 address=0.0.0.0
 enable_auth=true
@@ -1062,7 +1057,15 @@ enable_pam=true
 private_key_file=/home/$SUDO_USER/.config/wayvnc/key.pem
 certificate_file=/home/$SUDO_USER/.config/wayvnc/cert.pem
 EOF
-        chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/.config/wayvnc/
+        chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/.config/wayvnc/config
+      fi
+      if ! [ -e /home/$SUDO_USER/.config/wayvnc/key.pem ] || ! [ -e /home/$SUDO_USER/.config/wayvnc/cert.pem ] ; then
+        echo "Generating key..."
+        HOSTNAME=$(cat /etc/hostname)
+        IP=$(ifconfig | grep inet | head -n 1 | cut -d ' ' -f 10)
+        openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout /home/$SUDO_USER/.config/wayvnc/key.pem -out /home/$SUDO_USER/.config/wayvnc/cert.pem -subj /CN=$HOSTNAME -addext subjectAltName=DNS:$HOSTNAME,DNS:$HOSTNAME,IP:$IP 2> /dev/null
+        chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/.config/wayvnc/*.pem
+        echo "Done"
       fi
       if is_installed wayvnc || apt-get install "$APT_GET_FLAGS" wayvnc; then
         cat << EOF > /etc/xdg/autostart/wayvnc.desktop
@@ -1093,9 +1096,6 @@ EOF
       pkill wayvnc
       if [ -e /etc/xdg/autostart/wayvnc.desktop ] ; then
         rm /etc/xdg/autostart/wayvnc.desktop
-      fi
-      if [ -e /home/$SUDO_USER/.config/wayvnc/config ] ; then
-        rm -rf /home/$SUDO_USER/.config/wayvnc/
       fi
     fi
     if is_installed realvnc-vnc-server; then
