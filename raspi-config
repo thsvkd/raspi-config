@@ -111,7 +111,7 @@ is_kms() {
 }
 
 is_pulseaudio() {
-  ps ax | grep -v grep | grep -q pulseaudio
+  ps ax | grep -v grep | grep -q 'pulseaudio\|pipewire-pulse'
   return $?
 }
 
@@ -2403,7 +2403,7 @@ do_audio() {
   if is_pulseaudio ; then
     oIFS="$IFS"
     if [ "$INTERACTIVE" = True ]; then
-      list=$(sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID pacmd list-sinks | grep -e index -e alsa.name | sed s/*//g | sed s/^[' '\\t]*//g | sed s/'index: '//g | sed s/'alsa.name = '//g | sed s/'bcm2835 '//g | sed s/\"//g | tr '\n' '/')
+      list=$(sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID pactl list sinks | grep -e Name | sed s/*//g | sed s/^[' '\\t]*//g | sed s/'Name: '//g | sed s/\"//g | tr '\n' '/' | sed s#/#/""/#g)
       if ! [ -z "$list" ] ; then
         IFS="/"
         AUDIO_OUT=$(whiptail --menu "Choose the audio output" 20 60 10 ${list} 3>&1 1>&2 2>&3)
