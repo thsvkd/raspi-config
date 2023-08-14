@@ -2406,7 +2406,7 @@ do_audio() {
   if is_pulseaudio ; then
     oIFS="$IFS"
     if [ "$INTERACTIVE" = True ]; then
-      list=$(sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID pactl list sinks | grep -e Name | sed s/*//g | sed s/^[' '\\t]*//g | sed s/'Name: '//g | sed s/\"//g | tr '\n' '/' | sed s#/#/""/#g)
+      list=$(sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID pactl list sinks | grep -e "Sink #" -e "alsa.card_name" | sed s/*//g | sed s/^[' '\\t]*//g | sed s/'Sink #'//g | sed s/'alsa.card_name = '//g | sed s/'bcm2835 '//g | sed s/\"//g | tr '\n' '/')
       if [ -n "$list" ] ; then
         IFS="/"
         AUDIO_OUT=$(whiptail --menu "Choose the audio output" 20 60 10 ${list} 3>&1 1>&2 2>&3)
