@@ -684,9 +684,14 @@ do_change_locale() {
 
 do_change_locale_rc_gui() {
   sed -i "s/^\([^#].*\)/# \1/g" /etc/locale.gen
-  sed -i "s/^# \($1\s\)/\1/g" /etc/locale.gen
+  if grep -q "$1 " /etc/locale.gen ; then
+    LOC="$1"
+  else
+    LOC="$1.UTF-8"
+  fi
+  sed -i "s/^# \($LOC\s\)/\1/g" /etc/locale.gen
   locale-gen
-  LC_ALL=$1 LANG=$1 LANGUAGE=$1 update-locale LANG=$1 LC_ALL=$1 LANGUAGE=$1
+  LC_ALL=$LOC LANG=$LOC LANGUAGE=$LOC update-locale LANG=$LOC LC_ALL=$LOC LANGUAGE=$LOC
 }
 
 do_change_timezone() {
