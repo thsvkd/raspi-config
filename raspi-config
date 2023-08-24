@@ -1598,6 +1598,28 @@ do_fan() {
   fi
 }
 
+get_browser() {
+  echo $(update-alternatives --display x-www-browser | grep currently | cut -d " " -f 7 | cut -d / -f 4)
+}
+
+do_browser() {
+  if [ "$INTERACTIVE" = True ]; then
+    BROWSER=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Select Browser" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+      "chromium-browser" "Chromium" \
+      "firefox" "Firefox" \
+      3>&1 1>&2 2>&3)
+  else
+    BROWSER=$1
+    true
+  fi
+  if [ $? -eq 0 ]; then
+    update-alternatives --set x-www-browser /usr/bin/$BROWSER > /dev/null
+    if [ "$INTERACTIVE" = True ]; then
+      whiptail --msgbox "Browser set to $BROWSER" 20 60 1
+    fi
+  fi
+}
+
 do_boot_behaviour() {
   if [ "$INTERACTIVE" = True ]; then
     BOOTOPT=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Boot Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
@@ -3239,6 +3261,7 @@ do_system_menu() {
       "S6 Network at Boot" "Select wait for network connection on boot" \
       "S7 Splash Screen" "Choose graphical splash screen or text boot" \
       "S8 Power LED" "Set behaviour of power LED" \
+      "S9 Browser" "Choose default web browser" \
       3>&1 1>&2 2>&3)
   elif is_live ; then 
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "System Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
@@ -3271,6 +3294,7 @@ do_system_menu() {
       S6\ *) do_boot_wait ;;
       S7\ *) do_boot_splash ;;
       S8\ *) do_leds ;;
+      S9\ *) do_browser ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
