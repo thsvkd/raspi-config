@@ -1604,18 +1604,26 @@ get_browser() {
 
 do_browser() {
   if [ "$INTERACTIVE" = True ]; then
-    BROWSER=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Select Browser" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
-      "chromium-browser" "Chromium" \
-      "firefox" "Firefox" \
+    RES=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Select Browser" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+      "1" "Chromium" \
+      "2" "Firefox" \
       3>&1 1>&2 2>&3)
   else
+    RES=""
     BROWSER=$1
     true
   fi
   if [ $? -eq 0 ]; then
+    if [ "$RES" = "1" ] ; then
+      BROWSER="chromium-browser"
+      BSTRING="Chromium"
+    elif [ "$RES" = "2" ] ; then
+      BROWSER="firefox"
+      BSTRING="Firefox"
+    fi
     update-alternatives --set x-www-browser /usr/bin/$BROWSER > /dev/null
     if [ "$INTERACTIVE" = True ]; then
-      whiptail --msgbox "Browser set to $BROWSER" 20 60 1
+      whiptail --msgbox "Default browser set to $BSTRING" 20 60 1
     fi
   fi
 }
