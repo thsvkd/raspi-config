@@ -17,6 +17,9 @@ CONFIG=/boot${FIRMWARE}/config.txt
 USER=${SUDO_USER:-$(who -m | awk '{ print $1 }')}
 INIT="$(ps --no-headers -o comm 1)"
 
+HOMEDIR="$(getent passwd "$USER" | cut -d: -f6)"
+WAYFIRE_FILE="$HOMEDIR/.config/wayfire.ini"
+
 is_pi () {
   ARCH=$(dpkg --print-architecture)
   if [ "$ARCH" = "armhf" ] || [ "$ARCH" = "arm64" ] ; then
@@ -167,14 +170,6 @@ can_configure() {
 	  touch $CONFIG
   fi
   return 0
-}
-
-wayfire_file() {
-  if [ -z $SUDO_USER ]; then
-    echo $HOME/.config/wayfire.ini
-  else
-    echo /home/$SUDO_USER/.config/wayfire.ini
-  fi
 }
 
 calc_wt_size() {
@@ -458,7 +453,7 @@ do_overscan_kms() {
 
 get_blanking() {
   if is_wayfire; then
-    if grep -q dpms_timeout $(wayfire_file) && ! grep -q "dpms_timeout.*-1" $(wayfire_file) ; then
+    if grep -q dpms_timeout $WAYFIRE_FILE && ! grep -q "dpms_timeout.*-1" $WAYFIRE_FILE ; then
       echo 0
     else
       echo 1
@@ -487,19 +482,19 @@ do_blanking() {
       RET=$1
     fi
     if [ "$RET" -eq 0 ] ; then
-      if grep -q dpms_timeout $(wayfire_file) ; then
-        sed -i 's/dpms_timeout.*/dpms_timeout=600/' $(wayfire_file)
+      if grep -q dpms_timeout $WAYFIRE_FILE ; then
+        sed -i 's/dpms_timeout.*/dpms_timeout=600/' $WAYFIRE_FILE
       else
-        if grep -q "\[idle\]" $(wayfire_file) ; then
-          sed -i 's/\[idle]/[idle]\ndpms_timeout=600/' $(wayfire_file)
+        if grep -q "\[idle\]" $WAYFIRE_FILE ; then
+          sed -i 's/\[idle]/[idle]\ndpms_timeout=600/' $WAYFIRE_FILE
         else
-          echo '[idle]' >> $(wayfire_file)
-          echo 'dpms_timeout=600' >> $(wayfire_file)
+          echo '[idle]' >> $WAYFIRE_FILE
+          echo 'dpms_timeout=600' >> $WAYFIRE_FILE
         fi
       fi
       STATUS=enabled
     elif [ "$RET" -eq 1 ]; then
-	    sed -i 's/dpms_timeout.*/dpms_timeout=-1/' $(wayfire_file)
+	    sed -i 's/dpms_timeout.*/dpms_timeout=-1/' $WAYFIRE_FILE
       STATUS=disabled
     else
       return "$RET"
@@ -612,7 +607,7 @@ update_wayfire_keyboard() {
   LAYOUT=$(grep XKBLAYOUT /etc/default/keyboard | cut -d= -f2 | tr -d '"')
   VARIANT=$(grep XKBVARIANT /etc/default/keyboard | cut -d= -f2 | tr -d '"')
   OPTIONS=$(grep XKBOPTIONS /etc/default/keyboard | cut -d= -f2 | tr -d '"')
-  UFILE=$(wayfire_file)
+  UFILE=$WAYFIRE_FILE
   if [ -e $UFILE ] ; then
     grep -q "\\[input\\]" $UFILE || printf "\n[input]" >> $UFILE
     if grep -q xkb_options $UFILE ; then sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE ; fi
@@ -1060,23 +1055,23 @@ do_vnc() {
       systemctl stop vncserver-x11-serviced.service
     fi
     if is_wayfire; then
-      mkdir -p /home/$SUDO_USER/.config/wayvnc/
-      if ! [ -e /home/$SUDO_USER/.config/wayvnc/config ] ; then
-        cat << EOF > /home/$SUDO_USER/.config/wayvnc/config
+      mkdir -p $HOMEDIR/.config/wayvnc/
+      if ! [ -e $HOMEDIR/.config/wayvnc/config ] ; then
+        cat << EOF > $HOMEDIR/.config/wayvnc/config
 address=0.0.0.0
 enable_auth=true
 enable_pam=true
-private_key_file=/home/$SUDO_USER/.config/wayvnc/key.pem
-certificate_file=/home/$SUDO_USER/.config/wayvnc/cert.pem
+private_key_file=$HOMEDIR/.config/wayvnc/key.pem
+certificate_file=$HOMEDIR/.config/wayvnc/cert.pem
 EOF
-        chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/.config/wayvnc/config
+        chown -R $USER:$USER $HOMEDIR/.config/wayvnc/config
       fi
-      if ! [ -e /home/$SUDO_USER/.config/wayvnc/key.pem ] || ! [ -e /home/$SUDO_USER/.config/wayvnc/cert.pem ] ; then
+      if ! [ -e $HOMEDIR/.config/wayvnc/key.pem ] || ! [ -e $HOMEDIR/.config/wayvnc/cert.pem ] ; then
         echo "Generating key..."
         HOSTNAME=$(cat /etc/hostname)
         IP=$(ifconfig | grep inet | head -n 1 | cut -d ' ' -f 10)
-        openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout /home/$SUDO_USER/.config/wayvnc/key.pem -out /home/$SUDO_USER/.config/wayvnc/cert.pem -subj /CN=$HOSTNAME -addext subjectAltName=DNS:$HOSTNAME,DNS:$HOSTNAME,IP:$IP 2> /dev/null
-        chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/.config/wayvnc/*.pem
+        openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout $HOMEDIR/.config/wayvnc/key.pem -out $HOMEDIR/.config/wayvnc/cert.pem -subj /CN=$HOSTNAME -addext subjectAltName=DNS:$HOSTNAME,DNS:$HOSTNAME,IP:$IP 2> /dev/null
+        chown -R $USER:$USER $HOMEDIR/.config/wayvnc/*.pem
         echo "Done"
       fi
       if is_installed wayvnc || apt-get install "$APT_GET_FLAGS" wayvnc; then
@@ -1089,7 +1084,7 @@ NoDisplay=true
 Exec=/usr/bin/wayvnc
 OnlyShowIn=wayfire
 EOF
-        sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID WAYLAND_DISPLAY=wayland-1 wayvnc &
+        sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID WAYLAND_DISPLAY=wayland-1 wayvnc &
         STATUS=enabled
       else
         return 1
@@ -2327,9 +2322,9 @@ do_wayland() {
 }
 
 do_audioconf() {
-  sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q is-enabled pipewire-pulse > /dev/null 2>&1
+  sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q is-enabled pipewire-pulse > /dev/null 2>&1
   PPENABLED=$?
-  sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q is-enabled pulseaudio > /dev/null 2>&1
+  sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q is-enabled pulseaudio > /dev/null 2>&1
   PAENABLED=$?
   if [ "$INTERACTIVE" = True ]; then
     DEFAULT=1
@@ -2358,9 +2353,9 @@ do_audioconf() {
     systemctl --global -q enable pipewire-pulse
     systemctl --global -q enable wireplumber
     if [ "$INIT" = "systemd" ]; then
-      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop pulseaudio
-      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start pipewire-pulse
-      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start wireplumber
+      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop pulseaudio
+      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start pipewire-pulse
+      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start wireplumber
     fi
     if [ -e /usr/share/doc/pipewire/examples/alsa.conf.d/99-pipewire-default.conf ] ; then
       cp /usr/share/doc/pipewire/examples/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d/
@@ -2374,9 +2369,9 @@ do_audioconf() {
     systemctl --global -q disable wireplumber
     systemctl --global -q enable pulseaudio
     if [ "$INIT" = "systemd" ]; then
-      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop pipewire-pulse
-      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop wireplumber
-      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start pulseaudio
+      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop pipewire-pulse
+      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop wireplumber
+      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start pulseaudio
     fi
     if [ -e /etc/alsa/conf.d/99-pipewire-default.conf ] ; then
       rm /etc/alsa/conf.d/99-pipewire-default.conf
@@ -2447,7 +2442,7 @@ do_audio() {
   if is_pulseaudio ; then
     oIFS="$IFS"
     if [ "$INTERACTIVE" = True ]; then
-      list=$(sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID pactl list sinks | grep -e "Sink #" -e "alsa.card_name" | sed s/*//g | sed s/^[' '\\t]*//g | sed s/'Sink #'//g | sed s/'alsa.card_name = '//g | sed s/'bcm2835 '//g | sed s/\"//g | tr '\n' '/')
+      list=$(sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID pactl list sinks | grep -e "Sink #" -e "alsa.card_name" | sed s/*//g | sed s/^[' '\\t]*//g | sed s/'Sink #'//g | sed s/'alsa.card_name = '//g | sed s/'bcm2835 '//g | sed s/\"//g | tr '\n' '/')
       if [ -n "$list" ] ; then
         IFS="/"
         AUDIO_OUT=$(whiptail --menu "Choose the audio output" 20 60 10 ${list} 3>&1 1>&2 2>&3)
@@ -2460,7 +2455,7 @@ do_audio() {
       true
     fi
     if [ $? -eq 0 ]; then
-      sudo -u $SUDO_USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID pactl set-default-sink $AUDIO_OUT
+      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID pactl set-default-sink $AUDIO_OUT
     fi
     IFS="$oIFS"
   else
@@ -2609,8 +2604,8 @@ do_resolution() {
 
 get_vnc_resolution() {
   if is_wayfire ; then
-    W=$(grep ^headless_width $(wayfire_file) | grep -o "[0-9]*")
-    H=$(grep ^headless_height $(wayfire_file) | grep -o "[0-9]*")
+    W=$(grep ^headless_width $WAYFIRE_FILE | grep -o "[0-9]*")
+    H=$(grep ^headless_height $WAYFIRE_FILE | grep -o "[0-9]*")
     if [ -n "$W" ] && [ -n "$H" ] ; then
       echo $W"x"$H
     else
@@ -2644,14 +2639,14 @@ do_vnc_resolution() {
     if is_wayfire ; then
       W=$(echo "$FUN" | cut -d x -f 1)
       H=$(echo "$FUN" | cut -d x -f 2)
-      if grep -q ^headless_width $(wayfire_file) ; then
-        sed -i "s/headless_width.*/headless_width = $W/" $(wayfire_file)
-        sed -i "s/headless_height.*/headless_height = $H/" $(wayfire_file)
+      if grep -q ^headless_width $WAYFIRE_FILE ; then
+        sed -i "s/headless_width.*/headless_width = $W/" $WAYFIRE_FILE
+        sed -i "s/headless_height.*/headless_height = $H/" $WAYFIRE_FILE
       else
-        if grep -q "\[output\]" $(wayfire_file) ; then
-          sed -i "s/\[output]/[output]\nheadless_width = $W\nheadless_height = $H/" $(wayfire_file)
+        if grep -q "\[output\]" $WAYFIRE_FILE ; then
+          sed -i "s/\[output]/[output]\nheadless_width = $W\nheadless_height = $H/" $WAYFIRE_FILE
         else
-          printf '\n[output]\nheadless_width = %d\nheadless_height = %d' "$W" "$H" >> $(wayfire_file)
+          printf '\n[output]\nheadless_width = %d\nheadless_height = %d' "$W" "$H" >> $WAYFIRE_FILE
         fi
       fi
     else
