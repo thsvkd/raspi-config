@@ -1,3 +1,31 @@
+raspi-config (20230912) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Add switching for wayfire, pipewire, wayvnc
+  * Add Wayfire-compatible settings for screen blanking, VNC resolution, keyboard country
+  * Add compatibility with WayVNC for VNC over Wayland
+  * Remove various obsolete options
+  * Add browser selection
+  * Add wrapper functions for internationalisation for use by rc-gui and piwiz
+  * Configure fallback sessions for Wayfire
+  * Add compatibility with pipewire to audio select
+  * Various shellcheck and other tidying
+  * Fix selection of locales with no character set defined
+  * Modifications for new /boot directory structure
+  * Update names of LEDs to match new standard
+  * Add switch for USB current limit
+  * Remove obsolete options
+
+  [ Tim Gover ]
+  * raspi-config: Use rpi-eeprom-config instead of lower level command
+
+  [ Serge Schneider ]
+  * Set WLAN regulatory domain without relying on crda
+  * Use overlayroot to set up filesystem overlay
+  * Remove boot_wait options
+
+ -- Serge Schneider <serge@raspberrypi.com>  Tue, 12 Sep 2023 17:42:40 +0100
+
 raspi-config (20230214) bullseye; urgency=medium
 
   * do_wifi_ssid_passphrase: set scan_ssid on hidden network in dhcpcd case
