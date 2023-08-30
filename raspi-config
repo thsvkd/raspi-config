@@ -1623,6 +1623,7 @@ do_browser() {
       BSTRING="Firefox"
     fi
     update-alternatives --set x-www-browser /usr/bin/$BROWSER > /dev/null
+    sudo -u $USER xdg-settings set default-web-browser $BROWSER.desktop
     if [ "$INTERACTIVE" = True ]; then
       whiptail --msgbox "Default browser set to $BSTRING" 20 60 1
     fi
