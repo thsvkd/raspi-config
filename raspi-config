@@ -174,7 +174,7 @@ can_configure() {
     return 1
   fi
   if [ ! -e $CONFIG ]; then
-	  touch $CONFIG
+    touch $CONFIG
   fi
   return 0
 }
@@ -501,7 +501,7 @@ do_blanking() {
       fi
       STATUS=enabled
     elif [ "$RET" -eq 1 ]; then
-	    sed -i 's/dpms_timeout.*/dpms_timeout=-1/' $WAYFIRE_FILE
+      sed -i 's/dpms_timeout.*/dpms_timeout=-1/' $WAYFIRE_FILE
       STATUS=disabled
     else
       return "$RET"
