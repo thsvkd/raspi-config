@@ -615,21 +615,24 @@ update_wayfire_keyboard() {
   VARIANT=$(grep XKBVARIANT /etc/default/keyboard | cut -d= -f2 | tr -d '"')
   OPTIONS=$(grep XKBOPTIONS /etc/default/keyboard | cut -d= -f2 | tr -d '"')
   UFILE=$WAYFIRE_FILE
-  if [ -e $UFILE ] ; then
-    grep -q "\\[input\\]" $UFILE || printf "\n[input]" >> $UFILE
-    if grep -q xkb_options $UFILE ; then sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE ; fi
-    if grep -q xkb_variant $UFILE ; then sed -i s/xkb_variant.*/xkb_variant=$VARIANT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_variant=$VARIANT/ $UFILE ; fi
-    if grep -q xkb_layout $UFILE ; then sed -i s/xkb_layout.*/xkb_layout=$LAYOUT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_layout=$LAYOUT/ $UFILE ; fi
-    if grep -q xkb_model $UFILE ; then sed -i s/xkb_model.*/xkb_model=$MODEL/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_model=$MODEL/ $UFILE ; fi
+  if [ ! -e $UFILE ] ; then
+    cp /etc/wayfire/template.ini $UFILE
+    chown -R $USER:$USER $UFILE
   fi
+  grep -q "\\[input\\]" $UFILE || printf "\n[input]" >> $UFILE
+  if grep -q xkb_options $UFILE ; then sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE ; fi
+  if grep -q xkb_variant $UFILE ; then sed -i s/xkb_variant.*/xkb_variant=$VARIANT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_variant=$VARIANT/ $UFILE ; fi
+  if grep -q xkb_layout $UFILE ; then sed -i s/xkb_layout.*/xkb_layout=$LAYOUT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_layout=$LAYOUT/ $UFILE ; fi
+  if grep -q xkb_model $UFILE ; then sed -i s/xkb_model.*/xkb_model=$MODEL/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_model=$MODEL/ $UFILE ; fi
   UFILE="/etc/wayfire/greeter.ini"
-  if [ -e $UFILE ] ; then
-    grep -q "\\[input\\]" $UFILE || printf "\n[input]" >> $UFILE
-    if grep -q xkb_options $UFILE ; then sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE ; fi
-    if grep -q xkb_variant $UFILE ; then sed -i s/xkb_variant.*/xkb_variant=$VARIANT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_variant=$VARIANT/ $UFILE ; fi
-    if grep -q xkb_layout $UFILE ; then sed -i s/xkb_layout.*/xkb_layout=$LAYOUT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_layout=$LAYOUT/ $UFILE ; fi
-    if grep -q xkb_model $UFILE ; then sed -i s/xkb_model.*/xkb_model=$MODEL/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_model=$MODEL/ $UFILE ; fi
+  if [ ! -e $UFILE ] ; then
+    cp /etc/wayfire/gtemplate.ini $UFILE
   fi
+  grep -q "\\[input\\]" $UFILE || printf "\n[input]" >> $UFILE
+  if grep -q xkb_options $UFILE ; then sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE ; fi
+  if grep -q xkb_variant $UFILE ; then sed -i s/xkb_variant.*/xkb_variant=$VARIANT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_variant=$VARIANT/ $UFILE ; fi
+  if grep -q xkb_layout $UFILE ; then sed -i s/xkb_layout.*/xkb_layout=$LAYOUT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_layout=$LAYOUT/ $UFILE ; fi
+  if grep -q xkb_model $UFILE ; then sed -i s/xkb_model.*/xkb_model=$MODEL/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_model=$MODEL/ $UFILE ; fi
 }
 
 do_configure_keyboard() {
