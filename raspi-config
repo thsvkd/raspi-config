@@ -616,6 +616,10 @@ update_wayfire_keyboard() {
   OPTIONS=$(grep XKBOPTIONS /etc/default/keyboard | cut -d= -f2 | tr -d '"')
   UFILE=$WAYFIRE_FILE
   if [ ! -e $UFILE ] ; then
+    CONFIG_DIR="$(dirname "$UFILE")"
+    if ! [ -d "$CONFIG_DIR" ]; then
+      install -o "$USER" -g "$USER" -d "$CONFIG_DIR"
+    fi
     cp /etc/wayfire/template.ini $UFILE
     chown -R $USER:$USER $UFILE
   fi
