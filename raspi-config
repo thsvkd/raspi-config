@@ -3134,6 +3134,44 @@ do_proxy() {
   fi
 }
 
+get_usb_current() {
+  USB=$(get_config_var usb_max_current_enable $CONFIG)
+  if [ $USB -eq 1 ]; then
+    echo 0
+  else
+    echo 1
+  fi
+}
+
+do_usb_current() {
+  DEFAULT=--defaultno
+  if [ $(get_usb_current) -eq 0 ]; then
+    DEFAULT=
+  fi
+  if [ "$INTERACTIVE" = True ]; then
+    whiptail --yesno "Would you like the USB current limit to be disabled?" $DEFAULT 20 60 2
+    RET=$?
+  else
+    RET=$1
+  fi
+  if [ $RET -eq 0 ]; then
+    SETTING=1
+    STATUS=disabled
+  elif [ $RET -eq 1 ]; then
+    SETTING=0
+    STATUS=enabled
+  else
+    return $RET
+  fi
+
+  set_config_var usb_max_current_enable $SETTING $CONFIG &&
+
+  if [ "$INTERACTIVE" = True ]; then
+    whiptail --msgbox "The USB current limit is $STATUS" 20 60 1
+  fi
+}
+
+
 nonint() {
   "$@"
 }
@@ -3343,6 +3381,7 @@ do_performance_menu() {
     "P2 GPU Memory" "Change the amount of memory made available to the GPU" \
     "P3 Overlay File System" "Enable/disable read-only file system" \
     "P4 Fan" "Set behaviour of GPIO fan" \
+    "P5 USB Current" "Set USB current limit" \
     3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 1 ]; then
@@ -3353,6 +3392,7 @@ do_performance_menu() {
       P2\ *) do_memory_split ;;
       P3\ *) do_overlayfs ;;
       P4\ *) do_fan ;;
+      P5\ *) do_usb_current ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
