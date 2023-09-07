@@ -1843,44 +1843,6 @@ do_boot_rom() {
   fi
 }
 
-get_boot_wait() {
-  if test -e /etc/systemd/system/dhcpcd.service.d/wait.conf; then
-    echo 0
-  else
-    echo 1
-  fi
-}
-
-do_boot_wait() {
-  DEFAULT=--defaultno
-  if [ $(get_boot_wait) -eq 0 ]; then
-    DEFAULT=
-  fi
-  if [ "$INTERACTIVE" = True ]; then
-    whiptail --yesno "Would you like boot to wait until a network connection is established?" $DEFAULT 20 60 2
-    RET=$?
-  else
-    RET=$1
-  fi
-  if [ $RET -eq 0 ]; then
-    mkdir -p /etc/systemd/system/dhcpcd.service.d/
-    cat > /etc/systemd/system/dhcpcd.service.d/wait.conf << EOF
-[Service]
-ExecStart=
-ExecStart=/usr/sbin/dhcpcd -w -q
-EOF
-    STATUS=enabled
-  elif [ $RET -eq 1 ]; then
-    rm -f /etc/systemd/system/dhcpcd.service.d/wait.conf
-    STATUS=disabled
-  else
-    return $RET
-  fi
-  if [ "$INTERACTIVE" = True ]; then
-    whiptail --msgbox "Waiting for network on boot is $STATUS" 20 60 1
-  fi
-}
-
 get_boot_splash() {
   if is_pi ; then
     if grep -q "splash" $CMDLINE ; then
@@ -3241,10 +3203,9 @@ do_system_menu() {
       "S3 Password" "Change password for the '$USER' user" \
       "S4 Hostname" "Set name for this computer on a network" \
       "S5 Boot / Auto Login" "Select boot into desktop or to command line" \
-      "S6 Network at Boot" "Select wait for network connection on boot" \
-      "S7 Splash Screen" "Choose graphical splash screen or text boot" \
-      "S8 Power LED" "Set behaviour of power LED" \
-      "S9 Browser" "Choose default web browser" \
+      "S6 Splash Screen" "Choose graphical splash screen or text boot" \
+      "S7 Power LED" "Set behaviour of power LED" \
+      "S8 Browser" "Choose default web browser" \
       3>&1 1>&2 2>&3)
   elif is_live ; then 
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "System Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
@@ -3252,7 +3213,6 @@ do_system_menu() {
       "S3 Password" "Change password for the '$USER' user" \
       "S4 Hostname" "Set name for this computer on a network" \
       "S5 Boot / Auto Login" "Select boot into desktop or to command line" \
-      "S6 Network at Boot" "Select wait for network connection on boot" \
       3>&1 1>&2 2>&3)
   else
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "System Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
@@ -3260,8 +3220,7 @@ do_system_menu() {
       "S3 Password" "Change password for the '$USER' user" \
       "S4 Hostname" "Set name for this computer on a network" \
       "S5 Boot / Auto Login" "Select boot into desktop or to command line" \
-      "S6 Network at Boot" "Select wait for network connection on boot" \
-      "S7 Splash Screen" "Choose graphical splash screen or text boot" \
+      "S6 Splash Screen" "Choose graphical splash screen or text boot" \
       3>&1 1>&2 2>&3)
   fi
   RET=$?
@@ -3274,10 +3233,9 @@ do_system_menu() {
       S3\ *) do_change_pass ;;
       S4\ *) do_hostname ;;
       S5\ *) do_boot_behaviour ;;
-      S6\ *) do_boot_wait ;;
-      S7\ *) do_boot_splash ;;
-      S8\ *) do_leds ;;
-      S9\ *) do_browser ;;
+      S6\ *) do_boot_splash ;;
+      S7\ *) do_leds ;;
+      S8\ *) do_browser ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
