@@ -1,3 +1,12 @@
+raspi-config (20230913) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Fix warnings when setting keyboard without Wayfire files
+  * Add username parameter to do_browser to correctly set in wizard
+  * Do not attempt to switch audio configuration on-the-fly
+
+ -- Serge Schneider <serge@raspberrypi.com>  Wed, 13 Sep 2023 14:08:52 +0100
+
 raspi-config (20230912) bookworm; urgency=medium
 
   [ Simon Long ]
