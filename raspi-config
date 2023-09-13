@@ -2065,10 +2065,10 @@ do_audioconf() {
       DEFAULT=2
     fi
     if is_installed pulseaudio ; then
-      OPTIONS="1 pulseaudio"
+      OPTIONS="1 PulseAudio"
     fi
     if is_installed pipewire-pulse ; then
-      OPTIONS="$OPTIONS 2 pipewire"
+      OPTIONS="$OPTIONS 2 Pipewire"
     fi
     #shellcheck disable=2086
     PPOPT=$(whiptail --menu "Select the audio configuration to use" 20 60 10 $OPTIONS --default-item "$DEFAULT" 3>&1 1>&2 2>&3)
@@ -2085,15 +2085,10 @@ do_audioconf() {
     systemctl --global -q disable pulseaudio
     systemctl --global -q enable pipewire-pulse
     systemctl --global -q enable wireplumber
-    if [ "$INIT" = "systemd" ]; then
-      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop pulseaudio
-      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start pipewire-pulse
-      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start wireplumber
-    fi
     if [ -e /usr/share/doc/pipewire/examples/alsa.conf.d/99-pipewire-default.conf ] ; then
       cp /usr/share/doc/pipewire/examples/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d/
     fi
-    AUDCON="pipewire"
+    AUDCON="Pipewire"
     if [ "$PAENABLED" = 0 ] ; then
       ASK_TO_REBOOT=1
     fi
@@ -2101,15 +2096,10 @@ do_audioconf() {
     systemctl --global -q disable pipewire-pulse
     systemctl --global -q disable wireplumber
     systemctl --global -q enable pulseaudio
-    if [ "$INIT" = "systemd" ]; then
-      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop pipewire-pulse
-      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop wireplumber
-      sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q --no-block start pulseaudio
-    fi
     if [ -e /etc/alsa/conf.d/99-pipewire-default.conf ] ; then
       rm /etc/alsa/conf.d/99-pipewire-default.conf
     fi
-    AUDCON="pulseaudio"
+    AUDCON="PulseAudio"
     if [ "$PPENABLED" = 0 ] ; then
       ASK_TO_REBOOT=1
     fi
