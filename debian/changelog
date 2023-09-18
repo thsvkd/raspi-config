@@ -1,3 +1,9 @@
+raspi-config (20230918) bookworm; urgency=medium
+
+  * do_boot_behaviour: update HandlePowerKey
+
+ -- Serge Schneider <serge@raspberrypi.com>  Mon, 18 Sep 2023 13:53:04 +0100
+
 raspi-config (20230914) bookworm; urgency=medium
 
   [ Tim Gover ]
