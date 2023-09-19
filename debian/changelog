@@ -1,3 +1,10 @@
+raspi-config (20230919) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Reinstate overclock function
+
+ -- Serge Schneider <serge@raspberrypi.com>  Tue, 19 Sep 2023 11:34:04 +0100
+
 raspi-config (20230918) bookworm; urgency=medium
 
   * do_boot_behaviour: update HandlePowerKey
