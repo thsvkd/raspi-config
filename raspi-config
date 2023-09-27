@@ -454,7 +454,9 @@ do_overscan_kms() {
 
 get_blanking() {
   if is_wayfire; then
-    if grep -q dpms_timeout $WAYFIRE_FILE && ! grep -q "dpms_timeout.*-1" $WAYFIRE_FILE ; then
+    if ! grep -q dpms_timeout $WAYFIRE_FILE ; then
+      echo 0
+    elif ! grep -q "dpms_timeout.*-1" $WAYFIRE_FILE ; then
       echo 0
     else
       echo 1
@@ -495,7 +497,16 @@ do_blanking() {
       fi
       STATUS=enabled
     elif [ "$RET" -eq 1 ]; then
-      sed -i 's/dpms_timeout.*/dpms_timeout=-1/' $WAYFIRE_FILE
+      if grep -q dpms_timeout $WAYFIRE_FILE ; then
+        sed -i 's/dpms_timeout.*/dpms_timeout=-1/' $WAYFIRE_FILE
+      else
+        if grep -q "\[idle\]" $WAYFIRE_FILE ; then
+          sed -i 's/\[idle]/[idle]\ndpms_timeout=-1/' $WAYFIRE_FILE
+        else
+          echo '[idle]' >> $WAYFIRE_FILE
+          echo 'dpms_timeout=-1' >> $WAYFIRE_FILE
+        fi
+      fi
       STATUS=disabled
     else
       return "$RET"
