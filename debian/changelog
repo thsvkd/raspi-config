@@ -1,3 +1,10 @@
+raspi-config (20230927) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Change blanking logic to assume enabled by default
+
+ -- Serge Schneider <serge@raspberrypi.com>  Wed, 27 Sep 2023 11:56:45 +0100
+
 raspi-config (20230919) bookworm; urgency=medium
 
   [ Simon Long ]
