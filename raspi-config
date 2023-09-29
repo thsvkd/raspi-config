@@ -968,7 +968,7 @@ Type=Application
 Name=wayvnc
 Comment=Start wayvnc
 NoDisplay=true
-Exec=/usr/bin/wayvnc
+Exec=/usr/bin/wayvnc --render-cursor
 OnlyShowIn=wayfire
 EOF
         sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID WAYLAND_DISPLAY=wayland-1 wayvnc &
