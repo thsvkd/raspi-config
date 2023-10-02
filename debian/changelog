@@ -1,6 +1,13 @@
+raspi-config (20231002) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Add --render-cursor for immediately-started wayvnc as well
+
+ -- Simon Long <simon@raspberrypi.com>  Mon, 02 Oct 2023 08:40:56 +0100
+
 raspi-config (20230929) bookworm; urgency=medium
 
-  [ Simon Long]
+  [ Simon Long ]
   * Add --render-cursor to wayvnc command line
 
  -- Simon Long <simon@raspberrypi.com>  Fri, 29 Sep 2023 10:35:53 +0100
