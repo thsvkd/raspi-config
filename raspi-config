@@ -491,7 +491,7 @@ do_blanking() {
         if grep -q "\[idle\]" $WAYFIRE_FILE ; then
           sed -i 's/\[idle]/[idle]\ndpms_timeout=600/' $WAYFIRE_FILE
         else
-          echo '[idle]' >> $WAYFIRE_FILE
+          echo '\n[idle]' >> $WAYFIRE_FILE
           echo 'dpms_timeout=600' >> $WAYFIRE_FILE
         fi
       fi
@@ -503,7 +503,7 @@ do_blanking() {
         if grep -q "\[idle\]" $WAYFIRE_FILE ; then
           sed -i 's/\[idle]/[idle]\ndpms_timeout=-1/' $WAYFIRE_FILE
         else
-          echo '[idle]' >> $WAYFIRE_FILE
+          echo '\n[idle]' >> $WAYFIRE_FILE
           echo 'dpms_timeout=-1' >> $WAYFIRE_FILE
         fi
       fi
@@ -2457,7 +2457,7 @@ do_vnc_resolution() {
         if grep -q "\[output\]" $WAYFIRE_FILE ; then
           sed -i "s/\[output]/[output]\nheadless_width = $W\nheadless_height = $H/" $WAYFIRE_FILE
         else
-          printf '\n[output]\nheadless_width = %d\nheadless_height = %d' "$W" "$H" >> $WAYFIRE_FILE
+          printf '\n[output]\nheadless_width = %d\nheadless_height = %d\n' "$W" "$H" >> $WAYFIRE_FILE
         fi
       fi
     else
