@@ -2150,15 +2150,20 @@ do_audioconf() {
     if [ "$PPENABLED" = 0 ] ; then
       DEFAULT=2
     fi
-    if is_installed pulseaudio ; then
-      OPTIONS="1 PulseAudio"
+    if ! is_installed pulseaudio && ! is_installed pipewire-pulse ; then 
+      whiptail --msgbox "No audio systems installed" 20 60 1
+      RET=1
+    else
+      if is_installed pulseaudio ; then
+        OPTIONS="1 PulseAudio"
+      fi
+      if is_installed pipewire-pulse ; then
+        OPTIONS="$OPTIONS 2 Pipewire"
+      fi
+      #shellcheck disable=2086
+      PPOPT=$(whiptail --menu "Select the audio configuration to use" 20 60 10 $OPTIONS --default-item "$DEFAULT" 3>&1 1>&2 2>&3)
+      RET="$?"
     fi
-    if is_installed pipewire-pulse ; then
-      OPTIONS="$OPTIONS 2 Pipewire"
-    fi
-    #shellcheck disable=2086
-    PPOPT=$(whiptail --menu "Select the audio configuration to use" 20 60 10 $OPTIONS --default-item "$DEFAULT" 3>&1 1>&2 2>&3)
-    RET="$?"
   else
     PPOPT="$1"
     RET=0
