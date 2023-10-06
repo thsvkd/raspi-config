@@ -1,3 +1,10 @@
+raspi-config (20231006) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Modify for default Wayfire blanking disabled
+
+ -- Simon Long <simon@raspberrypi.com>  Fri, 06 Oct 2023 22:55:11 +0100
+
 raspi-config (20231005) bookworm; urgency=medium
 
   [ Simon Long ]

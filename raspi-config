@@ -455,7 +455,7 @@ do_overscan_kms() {
 get_blanking() {
   if is_wayfire; then
     if ! grep -q dpms_timeout $WAYFIRE_FILE ; then
-      echo 0
+      echo 1
     elif ! grep -q "dpms_timeout.*-1" $WAYFIRE_FILE ; then
       echo 0
     else
