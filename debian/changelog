@@ -1,3 +1,10 @@
+raspi-config (20231009) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Set keyboard layout for wayvnc
+
+ -- Simon Long <simon@raspberrypi.com>  Mon, 09 Oct 2023 07:58:21 +0100
+
 raspi-config (20231006) bookworm; urgency=medium
 
   [ Simon Long ]

@@ -962,16 +962,23 @@ EOF
         echo "Done"
       fi
       if is_installed wayvnc || apt-get install "$APT_GET_FLAGS" wayvnc; then
+        KBL=$(grep XKBLAYOUT /etc/default/keyboard | cut -d \" -f 2)
+        KBV=$(grep XKBVARIANT /etc/default/keyboard | cut -d \" -f 2)
+        if [ -z $KBV ] ; then
+          VNCKBD="$KBL"
+        else
+          VNCKBD="$KBL-$KBV"
+        fi
         cat << EOF > /etc/xdg/autostart/wayvnc.desktop
 [Desktop Entry]
 Type=Application
 Name=wayvnc
 Comment=Start wayvnc
 NoDisplay=true
-Exec=/usr/bin/wayvnc --render-cursor
+Exec=/usr/bin/wayvnc --render-cursor --keyboard=$VNCKBD
 OnlyShowIn=wayfire
 EOF
-        sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID WAYLAND_DISPLAY=wayland-1 wayvnc --render-cursor &
+        sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID WAYLAND_DISPLAY=wayland-1 wayvnc --render-cursor --keyboard=$VNCKBD &
         STATUS=enabled
       else
         return 1
