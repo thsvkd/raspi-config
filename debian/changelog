@@ -1,3 +1,9 @@
+raspi-config (20231013) bookworm; urgency=medium
+
+  * Fix desktop autologin settings
+
+ -- Serge Schneider <serge@raspberrypi.com>  Fri, 13 Oct 2023 12:12:23 +0100
+
 raspi-config (20231009) bookworm; urgency=medium
 
   [ Simon Long ]
