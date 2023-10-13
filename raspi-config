@@ -79,6 +79,11 @@ is_pifour() {
   return $?
 }
 
+is_pifive() {
+  grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F]4[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]$" /proc/cpuinfo
+  return $?
+}
+
 get_pi_type() {
   if is_pione; then
     echo 1
@@ -88,6 +93,8 @@ get_pi_type() {
     echo 3
   elif is_pifour; then
     echo 4
+  elif is_pifive; then
+    echo 4
   elif is_pizero; then
     echo 0
   else
@@ -96,10 +103,10 @@ get_pi_type() {
 }
 
 gpu_has_mmu() {
-  if is_pione || is_pitwo || is_pithree || is_pizero; then
-    return 1
-  else
+  if is_pifour || is_pifive ; then
     return 0
+  else
+    return 1
   fi
 }
 
