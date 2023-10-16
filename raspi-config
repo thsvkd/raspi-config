@@ -576,7 +576,7 @@ update_wayfire_keyboard() {
     if grep -q xkb_layout $UFILE ; then sed -i s/xkb_layout.*/xkb_layout=$LAYOUT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_layout=$LAYOUT/ $UFILE ; fi
     if grep -q xkb_model $UFILE ; then sed -i s/xkb_model.*/xkb_model=$MODEL/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_model=$MODEL/ $UFILE ; fi
   fi
-  UFILE="/etc/wayfire/greeter.ini"
+  UFILE="/usr/share/greeter.ini"
   if [ ! -e $UFILE ] && [ -e /etc/wayfire/gtemplate.ini ] ; then
     cp /etc/wayfire/gtemplate.ini $UFILE
   fi
