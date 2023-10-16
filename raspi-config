@@ -94,7 +94,7 @@ get_pi_type() {
   elif is_pifour; then
     echo 4
   elif is_pifive; then
-    echo 4
+    echo 5
   elif is_pizero; then
     echo 0
   else
