@@ -2968,16 +2968,15 @@ do_usb_current() {
     RET=$1
   fi
   if [ $RET -eq 0 ]; then
-    SETTING=1
+    set_config_var usb_max_current_enable 1 $CONFIG &&
     STATUS=disabled
   elif [ $RET -eq 1 ]; then
-    SETTING=0
+    sed $CONFIG -i -e "/usb_max_current_enable.*/d"
     STATUS=enabled
   else
     return $RET
   fi
 
-  set_config_var usb_max_current_enable $SETTING $CONFIG &&
 
   if [ "$INTERACTIVE" = True ]; then
     whiptail --msgbox "The USB current limit is $STATUS" 20 60 1
