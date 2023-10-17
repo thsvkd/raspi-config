@@ -2297,7 +2297,7 @@ do_audio() {
       else
         AUDIO_OUT=$1
       fi
-      if [ $? -eq 0 ]; then
+      if [ "$?" -eq 0 ] && [ -n "$AUDIO_OUT" ]; then
         amixer cset numid=3 "$AUDIO_OUT"
       fi
     else
@@ -2332,7 +2332,7 @@ do_audio() {
       else
         AUDIO_OUT=$1
       fi
-      if [ $? -eq 0 ]; then
+      if [ "$?" -eq 0 ] && [ -n "$AUDIO_OUT" ]; then
         cat << EOF > $ASPATH
 pcm.!default {
   type asym

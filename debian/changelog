@@ -1,3 +1,10 @@
+raspi-config (20231017+1) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Fix possible ALSA configuration error
+
+ -- Simon Long <simon@raspberrypi.com>  Tue, 17 Oct 2023 15:16:09 +0100
+
 raspi-config (20231017) bookworm; urgency=medium
 
   [ Simon Long ]
