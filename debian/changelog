@@ -1,3 +1,10 @@
+raspi-config (20231017) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Delete config.txt line when USB current limit enabled
+
+ -- Simon Long <simon@raspberrypi.com>  Tue, 17 Oct 2023 11:07:31 +0100
+
 raspi-config (20231016) bookworm; urgency=medium
 
   [ Simon Long ]
