@@ -1106,7 +1106,7 @@ do_i2c() {
   fi
 }
 
-get_serial() {
+get_serial_cons() {
   if grep -q -E "console=(serial0|ttyAMA0|ttyS0)" $CMDLINE ; then
     echo 0
   else
@@ -1136,7 +1136,7 @@ get_serial_hw() {
   fi
 }
 
-do_serial_console() {
+do_serial_cons() {
   if [ $1 -eq 0 ] ; then
     if grep -q "console=ttyAMA0" $CMDLINE ; then
       if [ -e /proc/device-tree/aliases/serial0 ]; then
@@ -1155,7 +1155,7 @@ do_serial_console() {
   fi
 }
 
-do_serial_hardware() {
+do_serial_hw() {
   if [ $1 -eq 0 ] ; then
     if is_pifive ; then
       set_config_var dtparam=uart0 on $CONFIG
@@ -1176,63 +1176,7 @@ do_serial() {
   DEFAULTH=--defaultno
   CURRENTS=0
   CURRENTH=0
-  if [ $(get_serial) -eq 0 ]; then
-    DEFAULTS=
-    CURRENTS=1
-  fi
-  if [ $(get_serial_hw) -eq 0 ]; then
-    DEFAULTH=
-    CURRENTH=1
-  fi
-  if [ "$INTERACTIVE" = True ]; then
-    whiptail --yesno "Would you like a login shell to be accessible over serial?" $DEFAULTS 20 60 2
-    RET=$?
-  else
-    RET=$1
-  fi
-  if [ $RET -eq $CURRENTS ]; then
-    ASK_TO_REBOOT=1
-  fi
-  if [ $RET -eq 0 ]; then
-    do_serial_console 0
-    SSTATUS=enabled
-    do_serial_hardware 0
-    HSTATUS=enabled
-  elif [ $RET -eq 1 ] || [ $RET -eq 2 ]; then
-    do_serial_console 1
-    SSTATUS=disabled
-    if [ "$INTERACTIVE" = True ]; then
-      whiptail --yesno "Would you like the serial port hardware to be enabled?" $DEFAULTH 20 60 2
-      RET=$?
-    else
-      RET=$((2 - RET))
-    fi
-    if [ $RET -eq $CURRENTH ]; then
-      ASK_TO_REBOOT=1
-    fi
-    if [ $RET -eq 0 ]; then
-      do_serial_hardware 0
-      HSTATUS=enabled
-    elif [ $RET -eq 1 ]; then
-      do_serial_hardware 1
-      HSTATUS=disabled
-    else
-      return $RET
-    fi
-  else
-    return $RET
-  fi
-  if [ "$INTERACTIVE" = True ]; then
-    whiptail --msgbox "The serial login shell is $SSTATUS\nThe serial interface is $HSTATUS" 20 60 1
-  fi
-}
-
-do_serial_pi5() {
-  DEFAULTS=--defaultno
-  DEFAULTH=--defaultno
-  CURRENTS=0
-  CURRENTH=0
-  if [ $(get_serial) -eq 0 ]; then
+  if [ $(get_serial_cons) -eq 0 ]; then
     DEFAULTS=
     CURRENTS=1
   fi
@@ -1246,10 +1190,56 @@ do_serial_pi5() {
     ASK_TO_REBOOT=1
   fi
   if [ $RET -eq 0 ]; then
-    do_serial_console 0
+    do_serial_cons 0
+    SSTATUS=enabled
+    do_serial_hw 0
+    HSTATUS=enabled
+  elif [ $RET -eq 1 ]; then
+    do_serial_cons 1
+    SSTATUS=disabled
+    whiptail --yesno "Would you like the serial port hardware to be enabled?" $DEFAULTH 20 60 2
+    RET=$?
+    if [ $RET -eq $CURRENTH ]; then
+      ASK_TO_REBOOT=1
+    fi
+    if [ $RET -eq 0 ]; then
+      do_serial_hw 0
+      HSTATUS=enabled
+    elif [ $RET -eq 1 ]; then
+      do_serial_hw 1
+      HSTATUS=disabled
+    else
+      return $RET
+    fi
+  else
+    return $RET
+  fi
+  whiptail --msgbox "The serial login shell is $SSTATUS\nThe serial interface is $HSTATUS" 20 60 1
+}
+
+do_serial_pi5() {
+  DEFAULTS=--defaultno
+  DEFAULTH=--defaultno
+  CURRENTS=0
+  CURRENTH=0
+  if [ $(get_serial_cons) -eq 0 ]; then
+    DEFAULTS=
+    CURRENTS=1
+  fi
+  if [ $(get_serial_hw) -eq 0 ]; then
+    DEFAULTH=
+    CURRENTH=1
+  fi
+  whiptail --yesno "Would you like a login shell to be accessible over serial?" $DEFAULTS 20 60 2
+  RET=$?
+  if [ $RET -eq $CURRENTS ]; then
+    ASK_TO_REBOOT=1
+  fi
+  if [ $RET -eq 0 ]; then
+    do_serial_cons 0
     SSTATUS=enabled
   elif [ $RET -eq 1 ]; then
-    do_serial_console 1
+    do_serial_cons 1
     SSTATUS=disabled
   else
     return $RET
@@ -1260,10 +1250,10 @@ do_serial_pi5() {
     ASK_TO_REBOOT=1
   fi
   if [ $RET -eq 0 ]; then
-    do_serial_hardware 0
+    do_serial_hw 0
     HSTATUS=enabled
   elif [ $RET -eq 1 ]; then
-    do_serial_hardware 1
+    do_serial_hw 1
     HSTATUS=disabled
   else
     return $RET
