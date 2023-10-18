@@ -1115,14 +1115,58 @@ get_serial() {
 }
 
 get_serial_hw() {
-  if grep -q -E "^enable_uart=1" $CONFIG ; then
-    echo 0
-  elif grep -q -E "^enable_uart=0" $CONFIG ; then
-    echo 1
-  elif [ -e /dev/serial0 ] ; then
-    echo 0
+  if is_pifive ; then
+    if grep -q -E "dtparam=uart0" $CONFIG ; then
+      echo 0
+    else
+      echo 1
+    fi
   else
-    echo 1
+    if grep -q -E "^enable_uart=1" $CONFIG ; then
+      echo 0
+    elif grep -q -E "^enable_uart=0" $CONFIG ; then
+      echo 1
+    elif [ -e /dev/serial0 ] ; then
+      echo 0
+    else
+      echo 1
+    fi
+  fi
+}
+
+do_serial_console() {
+  if [ $1 -eq 0 ] ; then
+    if grep -q "console=ttyAMA0" $CMDLINE ; then
+      if [ -e /proc/device-tree/aliases/serial0 ]; then
+        sed -i $CMDLINE -e "s/console=ttyAMA0/console=serial0/"
+      fi
+    elif ! grep -q "console=ttyAMA0" $CMDLINE && ! grep -q "console=serial0" $CMDLINE ; then
+      if [ -e /proc/device-tree/aliases/serial0 ]; then
+        sed -i $CMDLINE -e "s/root=/console=serial0,115200 root=/"
+      else
+        sed -i $CMDLINE -e "s/root=/console=ttyAMA0,115200 root=/"
+      fi
+    fi
+  else
+    sed -i $CMDLINE -e "s/console=ttyAMA0,[0-9]\+ //"
+    sed -i $CMDLINE -e "s/console=serial0,[0-9]\+ //"
+  fi
+}
+
+do_serial_hardware() {
+  if [ $1 -eq 0 ] ; then
+    if is_pifive ; then
+      set_config_var dtparam=uart0 on $CONFIG
+    else
+      set_config_var enable_uart 1 $CONFIG
+    fi
+  else
+    if is_pifive ; then
+      set_config_var dtparam=uart0 off $CONFIG
+      #sed $CONFIG -i -e "/dtparam=uart0.*/d"
+    else
+      set_config_var enable_uart 0 $CONFIG
+    fi
   fi
 }
 
@@ -1149,23 +1193,12 @@ do_serial() {
     ASK_TO_REBOOT=1
   fi
   if [ $RET -eq 0 ]; then
-    if grep -q "console=ttyAMA0" $CMDLINE ; then
-      if [ -e /proc/device-tree/aliases/serial0 ]; then
-        sed -i $CMDLINE -e "s/console=ttyAMA0/console=serial0/"
-      fi
-    elif ! grep -q "console=ttyAMA0" $CMDLINE && ! grep -q "console=serial0" $CMDLINE ; then
-      if [ -e /proc/device-tree/aliases/serial0 ]; then
-        sed -i $CMDLINE -e "s/root=/console=serial0,115200 root=/"
-      else
-        sed -i $CMDLINE -e "s/root=/console=ttyAMA0,115200 root=/"
-      fi
-    fi
-    set_config_var enable_uart 1 $CONFIG
+    do_serial_console 0
     SSTATUS=enabled
+    do_serial_hardware 0
     HSTATUS=enabled
   elif [ $RET -eq 1 ] || [ $RET -eq 2 ]; then
-    sed -i $CMDLINE -e "s/console=ttyAMA0,[0-9]\+ //"
-    sed -i $CMDLINE -e "s/console=serial0,[0-9]\+ //"
+    do_serial_console 1
     SSTATUS=disabled
     if [ "$INTERACTIVE" = True ]; then
       whiptail --yesno "Would you like the serial port hardware to be enabled?" $DEFAULTH 20 60 2
@@ -1177,10 +1210,10 @@ do_serial() {
       ASK_TO_REBOOT=1
     fi
     if [ $RET -eq 0 ]; then
-      set_config_var enable_uart 1 $CONFIG
+      do_serial_hardware 0
       HSTATUS=enabled
     elif [ $RET -eq 1 ]; then
-      set_config_var enable_uart 0 $CONFIG
+      do_serial_hardware 1
       HSTATUS=disabled
     else
       return $RET
