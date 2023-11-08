@@ -952,11 +952,13 @@ do_vnc() {
       mkdir -p $HOMEDIR/.config/wayvnc/
       if ! [ -e $HOMEDIR/.config/wayvnc/config ] ; then
         cat << EOF > $HOMEDIR/.config/wayvnc/config
+use_relative_paths=true
 address=0.0.0.0
 enable_auth=true
 enable_pam=true
-private_key_file=$HOMEDIR/.config/wayvnc/key.pem
-certificate_file=$HOMEDIR/.config/wayvnc/cert.pem
+private_key_file=key.pem
+certificate_file=cert.pem
+rsa_private_key_file=rsa_key.pem
 EOF
         chown -R $USER:$USER $HOMEDIR/.config/wayvnc/config
       fi
@@ -966,6 +968,12 @@ EOF
         IP=$(ifconfig | grep inet | head -n 1 | cut -d ' ' -f 10)
         openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout $HOMEDIR/.config/wayvnc/key.pem -out $HOMEDIR/.config/wayvnc/cert.pem -subj /CN=$HOSTNAME -addext subjectAltName=DNS:$HOSTNAME,DNS:$HOSTNAME,IP:$IP 2> /dev/null
         chown -R $USER:$USER $HOMEDIR/.config/wayvnc/*.pem
+        echo "Done"
+      fi
+      if ! [ -e $HOMEDIR/.config/wayvnc/rsa_key.pem ] ; then
+        echo "Generating RSA key..."
+        ssh-keygen -m pem -f $HOMEDIR/.config/wayvnc/rsa_key.pem -t rsa -N "" > /dev/null
+        chown -R $USER:$USER $HOMEDIR/.config/wayvnc/rsa_key.pem
         echo "Done"
       fi
       if is_installed wayvnc || apt-get install "$APT_GET_FLAGS" wayvnc; then
@@ -985,7 +993,7 @@ NoDisplay=true
 Exec=/usr/bin/wayvnc --render-cursor --keyboard=$VNCKBD
 OnlyShowIn=wayfire
 EOF
-        sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID WAYLAND_DISPLAY=wayland-1 wayvnc --render-cursor --keyboard=$VNCKBD &
+        sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID WAYLAND_DISPLAY=wayland-1 wayvnc --render-cursor --keyboard=$VNCKBD 2> /dev/null &
         STATUS=enabled
       else
         return 1
@@ -1009,6 +1017,11 @@ EOF
     if is_installed realvnc-vnc-server; then
       systemctl disable vncserver-x11-serviced.service
       systemctl stop vncserver-x11-serviced.service
+    fi
+    if is_wayfire; then
+      if [ -e $HOMEDIR/.config/wayvnc/config ] ; then
+        rm $HOMEDIR/.config/wayvnc/config
+      fi
     fi
     STATUS=disabled
   else
