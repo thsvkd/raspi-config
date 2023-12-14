@@ -1,3 +1,14 @@
+raspi-config (20231214) bookworm; urgency=medium
+
+  [ Andri Yngvason ]
+  * Use wayvnc system service
+
+  [ timg236 ]
+  * raspi-config: Remove references to stable/critical bootloader releases (#227)
+  * raspi-config: Enable NVMe in BOOT_ORDER on Pi5 (#228)
+
+ -- Serge Schneider <serge@raspberrypi.com>  Thu, 14 Dec 2023 14:28:32 +0000
+
 raspi-config (20231108) bookworm; urgency=medium
 
   [ Simon Long ]
