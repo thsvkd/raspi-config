@@ -1,3 +1,9 @@
+raspi-config (20231216) bookworm; urgency=medium
+
+  * Revert "Merge pull request #226 from any1/wayvnc-system-service"
+
+ -- Serge Schneider <serge@raspberrypi.com>  Sat, 16 Dec 2023 15:38:37 +0000
+
 raspi-config (20231214) bookworm; urgency=medium
 
   [ Andri Yngvason ]
