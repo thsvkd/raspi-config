@@ -158,6 +158,10 @@ deb_ver () {
   echo $ver
 }
 
+get_package_version() {
+  dpkg-query --showformat='${Version}' --show "$1"
+}
+
 can_configure() {
   if [ ! -e /etc/init.d/lightdm ]; then
     return 1
@@ -939,6 +943,12 @@ do_vnc() {
   fi
   if [ $RET -eq 0 ]; then
     if is_installed wayvnc; then
+      wayvnc_version="$(get_package_version wayvnc)"
+      if dpkg --compare-versions "$wayvnc_version" lt 0.8; then
+        whiptail --msgbox "WayVNC version 0.8 or greater is required (have $wayvnc_version)" 20 60 1
+        return 1
+      fi
+
       systemctl stop wayvnc.service
 
       # In case wayvnc is already running via older xdg-autostart machanism
