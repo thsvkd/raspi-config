@@ -1,3 +1,10 @@
+raspi-config (20240108) bookworm; urgency=medium
+
+  [ Andri Yngvason ]
+  * Updates to wayvnc system service
+
+ -- Simon Long <simon@raspberrypi.com>  Mon, 08 Jan 2024 14:38:07 +0000
+
 raspi-config (20240104) bookworm; urgency=medium
 
   * d/c: remove initramfs-tools dependency
