@@ -649,8 +649,6 @@ update_labwc_keyboard() {
   fi
 }
 
-
-
 do_configure_keyboard() {
   printf "Reloading keymap. This may take a short while\n"
   rm -f /etc/console-setup/cached_*
