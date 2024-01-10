@@ -147,7 +147,7 @@ is_wayland() {
   if is_wayfire; then
     return 0
   elif is_labwc; then
-	return 0
+    return 0
   else
     return 1
   fi
