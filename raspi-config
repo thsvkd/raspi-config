@@ -647,7 +647,7 @@ update_labwc_keyboard() {
     if grep -q XKB_DEFAULT_VARIANT $UFILE ; then sed -i s/XKB_DEFAULT_VARIANT.*/XKB_DEFAULT_VARIANT=$VARIANT/ $UFILE ; else echo XKB_DEFAULT_VARIANT=$VARIANT >> $UFILE ; fi
     if grep -q XKB_DEFAULT_OPTIONS $UFILE ; then sed -i s/XKB_DEFAULT_OPTIONS.*/XKB_DEFAULT_OPTIONS=$OPTIONS/ $UFILE ; else echo XKB_DEFAULT_OPTIONS=$OPTIONS >> $UFILE ; fi
   fi
-  labwc --reconfigure
+  kill -HUP `pgrep labwc`  # does the equivalent of labwc --reconfigure, but works as sudo...
 }
 
 do_configure_keyboard() {
