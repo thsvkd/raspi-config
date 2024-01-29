@@ -27,6 +27,7 @@ INIT="$(ps --no-headers -o comm 1)"
 HOMEDIR="$(getent passwd "$USER" | cut -d: -f6)"
 WAYFIRE_FILE="$HOMEDIR/.config/wayfire.ini"
 LABWCENV_FILE="$HOMEDIR/.config/labwc/environment"
+LABWCAST_FILE="$HOMEDIR/.config/labwc/autostart"
 
 is_pi () {
   ARCH=$(dpkg --print-architecture)
@@ -488,6 +489,12 @@ get_blanking() {
     else
       echo 1
     fi
+  elif is_labwc; then
+    if grep -q swayidle $LABWCAST_FILE ; then
+      echo 0
+    else
+      echo 1
+    fi
   else
     if ! [ -f "/etc/X11/xorg.conf.d/10-blanking.conf" ]; then
       echo 0
@@ -534,6 +541,25 @@ do_blanking() {
           echo 'dpms_timeout=-1' >> $WAYFIRE_FILE
         fi
       fi
+      STATUS=disabled
+    else
+      return "$RET"
+    fi
+  elif is_labwc; then
+    if [ "$INTERACTIVE" = True ]; then
+      whiptail --yesno "Would you like to enable screen blanking?" $DEFAULT 20 60 2
+      RET=$?
+    else
+      RET=$1
+    fi
+    if [ "$RET" -eq "$CURRENT" ]; then
+      ASK_TO_REBOOT=1
+    fi
+    if [ "$RET" -eq 0 ] ; then
+      echo "swayidle -w timeout 30 'wlopm --off \\*' resume 'wlopm --on \\*' &" >> $LABWCAST_FILE
+      STATUS=enabled
+    elif [ "$RET" -eq 1 ]; then
+      sed -i '/swayidle/d' $LABWCAST_FILE
       STATUS=disabled
     else
       return "$RET"
