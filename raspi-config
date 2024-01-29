@@ -556,7 +556,7 @@ do_blanking() {
       ASK_TO_REBOOT=1
     fi
     if [ "$RET" -eq 0 ] ; then
-      echo "swayidle -w timeout 30 'wlopm --off \\*' resume 'wlopm --on \\*' &" >> $LABWCAST_FILE
+      echo "swayidle -w timeout 600 'wlopm --off \\*' resume 'wlopm --on \\*' &" >> $LABWCAST_FILE
       STATUS=enabled
     elif [ "$RET" -eq 1 ]; then
       sed -i '/swayidle/d' $LABWCAST_FILE
