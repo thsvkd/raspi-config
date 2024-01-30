@@ -1,3 +1,10 @@
+raspi-config (20240130) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Add labwc screen blanking
+
+ -- Simon Long <simon@raspberrypi.com>  Tue, 30 Jan 2024 07:43:59 +0000
+
 raspi-config (20240111) bookworm; urgency=medium
 
   [ Simon Long ]
