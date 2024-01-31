@@ -1652,12 +1652,10 @@ do_boot_behaviour() {
     case "$BOOTOPT" in # Handle default target
       B1*|B2*) # Console
         systemctl --quiet set-default multi-user.target
-        sed -i 's/^.*HandlePowerKey=.*$/#HandlePowerKey=poweroff/' /etc/systemd/logind.conf
         ;;
       B3*|B4*) # Desktop
         if [ -e /etc/init.d/lightdm ]; then
           systemctl --quiet set-default graphical.target
-          sed -i 's/^.*HandlePowerKey=.*$/HandlePowerKey=ignore/' /etc/systemd/logind.conf
         else
           whiptail --msgbox "Do 'sudo apt-get install lightdm' to allow configuration of boot to desktop" 20 60 2
           return 1

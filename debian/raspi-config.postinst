@@ -30,4 +30,8 @@ if dpkg --compare-versions "${2}" lt-nl "20220907+1"; then
   fi
 fi
 
+if grep -q ^HandlePowerKey= /etc/systemd/logind.conf; then
+  sed -i 's/^.*HandlePowerKey=.*$/#HandlePowerKey=poweroff/' /etc/systemd/logind.conf
+fi
+
 #DEBHELPER#
