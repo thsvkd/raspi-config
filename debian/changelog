@@ -1,3 +1,10 @@
+raspi-config (20240131) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Remove logind power key settings in do_boot_behaviour
+
+ -- Simon Long <simon@raspberrypi.com>  Wed, 31 Jan 2024 12:48:28 +0000
+
 raspi-config (20240130) bookworm; urgency=medium
 
   [ Simon Long ]
