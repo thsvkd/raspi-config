@@ -840,6 +840,9 @@ do_wifi_country() {
   if [ "$INTERACTIVE" = True ]; then
     whiptail --msgbox "Wireless LAN country set to $REGDOMAIN" 20 60 1
   fi
+  if pgrep wf-panel-pi > /dev/null; then
+    wfpanelctl netman cset
+  fi
 }
 
 get_hostname() {
