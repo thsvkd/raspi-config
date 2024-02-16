@@ -843,6 +843,9 @@ do_wifi_country() {
   if pgrep wf-panel-pi > /dev/null; then
     wfpanelctl netman cset
   fi
+  if pgrep lxpanel > /dev/null; then
+    lxpanelctl command netman cset
+  fi
 }
 
 get_hostname() {
