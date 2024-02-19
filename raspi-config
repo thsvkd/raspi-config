@@ -26,6 +26,8 @@ INIT="$(ps --no-headers -o comm 1)"
 
 HOMEDIR="$(getent passwd "$USER" | cut -d: -f6)"
 WAYFIRE_FILE="$HOMEDIR/.config/wayfire.ini"
+LABWCENV_FILE="$HOMEDIR/.config/labwc/environment"
+LABWCAST_FILE="$HOMEDIR/.config/labwc/autostart"
 
 is_pi () {
   ARCH=$(dpkg --print-architecture)
@@ -135,6 +137,21 @@ is_pulseaudio() {
 is_wayfire() {
   pgrep wayfire > /dev/null
   return $?
+}
+
+is_labwc() {
+  pgrep labwc > /dev/null
+  return $?
+}
+
+is_wayland() {
+  if is_wayfire; then
+    return 0
+  elif is_labwc; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 has_analog() {
@@ -472,6 +489,12 @@ get_blanking() {
     else
       echo 1
     fi
+  elif is_labwc; then
+    if grep -q swayidle $LABWCAST_FILE ; then
+      echo 0
+    else
+      echo 1
+    fi
   else
     if ! [ -f "/etc/X11/xorg.conf.d/10-blanking.conf" ]; then
       echo 0
@@ -522,6 +545,25 @@ do_blanking() {
     else
       return "$RET"
     fi
+  elif is_labwc; then
+    if [ "$INTERACTIVE" = True ]; then
+      whiptail --yesno "Would you like to enable screen blanking?" $DEFAULT 20 60 2
+      RET=$?
+    else
+      RET=$1
+    fi
+    if [ "$RET" -eq "$CURRENT" ]; then
+      ASK_TO_REBOOT=1
+    fi
+    if [ "$RET" -eq 0 ] ; then
+      echo "swayidle -w timeout 600 'wlopm --off \\*' resume 'wlopm --on \\*' &" >> $LABWCAST_FILE
+      STATUS=enabled
+    elif [ "$RET" -eq 1 ]; then
+      sed -i '/swayidle/d' $LABWCAST_FILE
+      STATUS=disabled
+    else
+      return "$RET"
+    fi
   else
     if [ "$INTERACTIVE" = True ]; then
       if [ "$(dpkg -l xscreensaver | tail -n 1 | cut -d ' ' -f 1)" = "ii" ]; then
@@ -560,6 +602,9 @@ do_change_pass() {
 }
 
 update_wayfire_keyboard() {
+  if ! is_wayfire ; then
+    return
+  fi
   MODEL=$(grep XKBMODEL /etc/default/keyboard | cut -d= -f2 | tr -d '"')
   LAYOUT=$(grep XKBLAYOUT /etc/default/keyboard | cut -d= -f2 | tr -d '"')
   VARIANT=$(grep XKBVARIANT /etc/default/keyboard | cut -d= -f2 | tr -d '"')
@@ -575,10 +620,10 @@ update_wayfire_keyboard() {
   fi
   if [ -e $UFILE ] ; then
     grep -q "\\[input\\]" $UFILE || printf "\n[input]" >> $UFILE
-    if grep -q xkb_options $UFILE ; then sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE ; fi
-    if grep -q xkb_variant $UFILE ; then sed -i s/xkb_variant.*/xkb_variant=$VARIANT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_variant=$VARIANT/ $UFILE ; fi
-    if grep -q xkb_layout $UFILE ; then sed -i s/xkb_layout.*/xkb_layout=$LAYOUT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_layout=$LAYOUT/ $UFILE ; fi
     if grep -q xkb_model $UFILE ; then sed -i s/xkb_model.*/xkb_model=$MODEL/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_model=$MODEL/ $UFILE ; fi
+    if grep -q xkb_layout $UFILE ; then sed -i s/xkb_layout.*/xkb_layout=$LAYOUT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_layout=$LAYOUT/ $UFILE ; fi
+    if grep -q xkb_variant $UFILE ; then sed -i s/xkb_variant.*/xkb_variant=$VARIANT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_variant=$VARIANT/ $UFILE ; fi
+    if grep -q xkb_options $UFILE ; then sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE ; fi
   fi
   UFILE="/usr/share/greeter.ini"
   if [ ! -e $UFILE ] && [ -e /etc/wayfire/gtemplate.ini ] ; then
@@ -586,11 +631,49 @@ update_wayfire_keyboard() {
   fi
   if [ -e $UFILE ] ; then
     grep -q "\\[input\\]" $UFILE || printf "\n[input]" >> $UFILE
-    if grep -q xkb_options $UFILE ; then sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE ; fi
-    if grep -q xkb_variant $UFILE ; then sed -i s/xkb_variant.*/xkb_variant=$VARIANT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_variant=$VARIANT/ $UFILE ; fi
-    if grep -q xkb_layout $UFILE ; then sed -i s/xkb_layout.*/xkb_layout=$LAYOUT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_layout=$LAYOUT/ $UFILE ; fi
     if grep -q xkb_model $UFILE ; then sed -i s/xkb_model.*/xkb_model=$MODEL/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_model=$MODEL/ $UFILE ; fi
+    if grep -q xkb_layout $UFILE ; then sed -i s/xkb_layout.*/xkb_layout=$LAYOUT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_layout=$LAYOUT/ $UFILE ; fi
+    if grep -q xkb_variant $UFILE ; then sed -i s/xkb_variant.*/xkb_variant=$VARIANT/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_variant=$VARIANT/ $UFILE ; fi
+    if grep -q xkb_options $UFILE ; then sed -i s/xkb_options.*/xkb_options=$OPTIONS/ $UFILE ; else sed -i s/\\[input\\]/[input]\\nxkb_options=$OPTIONS/ $UFILE ; fi
   fi
+}
+
+update_labwc_keyboard() {
+  if ! is_labwc ; then
+    return
+  fi
+  MODEL=$(grep XKBMODEL /etc/default/keyboard | cut -d= -f2 | tr -d '"')
+  LAYOUT=$(grep XKBLAYOUT /etc/default/keyboard | cut -d= -f2 | tr -d '"')
+  VARIANT=$(grep XKBVARIANT /etc/default/keyboard | cut -d= -f2 | tr -d '"')
+  OPTIONS=$(grep XKBOPTIONS /etc/default/keyboard | cut -d= -f2 | tr -d '"')
+  UFILE=$LABWCENV_FILE
+  if [ ! -e $UFILE ] ; then
+    CONFIG_DIR="$(dirname "$UFILE")"
+    if ! [ -d "$CONFIG_DIR" ]; then
+      install -o "$USER" -g "$USER" -d "$CONFIG_DIR"
+    fi
+    touch $UFILE
+    chown -R $USER:$USER $UFILE
+  fi
+  if [ -e $UFILE ] ; then
+    if grep -q XKB_DEFAULT_MODEL $UFILE ; then sed -i s/XKB_DEFAULT_MODEL.*/XKB_DEFAULT_MODEL=$MODEL/ $UFILE ; else echo XKB_DEFAULT_MODEL=$MODEL >> $UFILE ; fi
+    if grep -q XKB_DEFAULT_LAYOUT $UFILE ; then sed -i s/XKB_DEFAULT_LAYOUT.*/XKB_DEFAULT_LAYOUT=$LAYOUT/ $UFILE ; else echo XKB_DEFAULT_LAYOUT=$LAYOUT >> $UFILE ; fi
+    if grep -q XKB_DEFAULT_VARIANT $UFILE ; then sed -i s/XKB_DEFAULT_VARIANT.*/XKB_DEFAULT_VARIANT=$VARIANT/ $UFILE ; else echo XKB_DEFAULT_VARIANT=$VARIANT >> $UFILE ; fi
+    if grep -q XKB_DEFAULT_OPTIONS $UFILE ; then sed -i s/XKB_DEFAULT_OPTIONS.*/XKB_DEFAULT_OPTIONS=$OPTIONS/ $UFILE ; else echo XKB_DEFAULT_OPTIONS=$OPTIONS >> $UFILE ; fi
+  fi
+  UFILE="/usr/share/labwc/environment"
+  if [ ! -e $UFILE ] ; then
+    CONFIG_DIR="$(dirname "$UFILE")"
+    mkdir -p "$CONFIG_DIR"
+    touch $UFILE
+  fi
+  if [ -e $UFILE ] ; then
+    if grep -q XKB_DEFAULT_MODEL $UFILE ; then sed -i s/XKB_DEFAULT_MODEL.*/XKB_DEFAULT_MODEL=$MODEL/ $UFILE ; else echo XKB_DEFAULT_MODEL=$MODEL >> $UFILE ; fi
+    if grep -q XKB_DEFAULT_LAYOUT $UFILE ; then sed -i s/XKB_DEFAULT_LAYOUT.*/XKB_DEFAULT_LAYOUT=$LAYOUT/ $UFILE ; else echo XKB_DEFAULT_LAYOUT=$LAYOUT >> $UFILE ; fi
+    if grep -q XKB_DEFAULT_VARIANT $UFILE ; then sed -i s/XKB_DEFAULT_VARIANT.*/XKB_DEFAULT_VARIANT=$VARIANT/ $UFILE ; else echo XKB_DEFAULT_VARIANT=$VARIANT >> $UFILE ; fi
+    if grep -q XKB_DEFAULT_OPTIONS $UFILE ; then sed -i s/XKB_DEFAULT_OPTIONS.*/XKB_DEFAULT_OPTIONS=$OPTIONS/ $UFILE ; else echo XKB_DEFAULT_OPTIONS=$OPTIONS >> $UFILE ; fi
+  fi
+  kill -HUP `pgrep labwc`  # does the equivalent of labwc --reconfigure, but works as sudo...
 }
 
 do_configure_keyboard() {
@@ -604,6 +687,7 @@ do_configure_keyboard() {
     dpkg-reconfigure -f noninteractive keyboard-configuration
   fi
   update_wayfire_keyboard
+  update_labwc_keyboard
   if [ "$INIT" = "systemd" ]; then
     systemctl restart keyboard-setup
   fi
@@ -617,11 +701,12 @@ do_change_keyboard_rc_gui () {
   grep -q XKBLAYOUT /etc/default/keyboard && sed -i "s/XKBLAYOUT=.*/XKBLAYOUT=\"$2\"/g" /etc/default/keyboard || echo "XKBLAYOUT=\"$2\"" >> /etc/default/keyboard
   grep -q XKBVARIANT /etc/default/keyboard && sed -i "s/XKBVARIANT=.*/XKBVARIANT=\"$3\"/g" /etc/default/keyboard || echo "XKBVARIANT=\"$3\"" >> /etc/default/keyboard
   update_wayfire_keyboard
-  if ! is_wayfire ; then
+  update_labwc_keyboard
+  if ! is_wayland ; then
     invoke-rc.d keyboard-setup start
   fi
   setsid sh -c 'exec setupcon -k --force <> /dev/tty1 >&0 2>&1'
-  if ! is_wayfire ; then
+  if ! is_wayland ; then
     udevadm trigger --subsystem-match=input --action=change
     udevadm settle
     KBSTR="-model $1 -layout $2"
@@ -754,6 +839,12 @@ do_wifi_country() {
   fi
   if [ "$INTERACTIVE" = True ]; then
     whiptail --msgbox "Wireless LAN country set to $REGDOMAIN" 20 60 1
+  fi
+  if pgrep wf-panel-pi > /dev/null; then
+    wfpanelctl netman cset
+  fi
+  if pgrep lxpanel > /dev/null; then
+    lxpanelctl command netman cset
   fi
 }
 
@@ -913,7 +1004,7 @@ do_ssh() {
 }
 
 get_vnc() {
-  if is_wayfire; then
+  if is_wayland; then
     if pgrep wayvnc > /dev/null; then
       echo 0
     else
@@ -961,7 +1052,7 @@ do_vnc() {
       systemctl disable vncserver-x11-serviced.service
       systemctl stop vncserver-x11-serviced.service
     fi
-    if is_wayfire; then
+    if is_wayland; then
       if is_installed wayvnc; then
         systemctl enable wayvnc.service &&
         systemctl start wayvnc.service &&
@@ -1567,12 +1658,10 @@ do_boot_behaviour() {
     case "$BOOTOPT" in # Handle default target
       B1*|B2*) # Console
         systemctl --quiet set-default multi-user.target
-        sed -i 's/^.*HandlePowerKey=.*$/#HandlePowerKey=poweroff/' /etc/systemd/logind.conf
         ;;
       B3*|B4*) # Desktop
         if [ -e /etc/init.d/lightdm ]; then
           systemctl --quiet set-default graphical.target
-          sed -i 's/^.*HandlePowerKey=.*$/HandlePowerKey=ignore/' /etc/systemd/logind.conf
         else
           whiptail --msgbox "Do 'sudo apt-get install lightdm' to allow configuration of boot to desktop" 20 60 2
           return 1
@@ -2163,10 +2252,18 @@ do_glamor() {
 
 do_wayland() {
   if [ "$INTERACTIVE" = True ]; then
-    RET=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Wayland Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
-        "W1 X11" "Openbox window manager with X11 backend" \
-        "W2 Wayfire" "Wayfire window manager with Wayland backend" \
-        3>&1 1>&2 2>&3)
+    if [ -f /usr/bin/labwc ]; then
+      RET=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Wayland Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+          "W1 X11" "Openbox window manager with X11 backend" \
+          "W2 Wayfire" "Wayfire window manager with Wayland backend" \
+          "W3 Labwc" "Labwc window manager with Wayland backend" \
+          3>&1 1>&2 2>&3)
+    else
+      RET=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Wayland Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+          "W1 X11" "Openbox window manager with X11 backend" \
+          "W2 Wayfire" "Wayfire window manager with Wayland backend" \
+          3>&1 1>&2 2>&3)
+    fi
   else
     RET=$1
     true
@@ -2193,6 +2290,18 @@ do_wayland() {
           sed "/var/lib/AccountsService/users/$USER" -i -e "s/XSession=.*/XSession=LXDE-pi-wayfire/"
         fi
         STATUS="Wayfire on Wayland"
+        ;;
+      W3*)
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?user-session.*/user-session=LXDE-pi-labwc/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?autologin-session.*/autologin-session=LXDE-pi-labwc/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?greeter-session.*/greeter-session=pi-greeter-labwc/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?fallback-test.*/fallback-test=\/usr\/bin\/xfallback.sh/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?fallback-session.*/fallback-session=LXDE-pi-x/"
+        sed /etc/lightdm/lightdm.conf -i -e "s/^#\\?fallback-greeter.*/fallback-greeter=pi-greeter/"
+        if [ -e "/var/lib/AccountsService/users/$USER" ] ; then
+          sed "/var/lib/AccountsService/users/$USER" -i -e "s/XSession=.*/XSession=LXDE-pi-wayfire/"
+        fi
+        STATUS="Labwc on Wayland"
         ;;
       *)
         whiptail --msgbox "Programmer error, unrecognised boot option" 20 60 2
@@ -3147,18 +3256,16 @@ do_system_menu() {
 
 do_display_menu() {
   if is_pi ; then
-    if is_wayfire; then
+    if is_wayland; then
       if is_pifour; then
         FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Display Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
           "D2 Screen Blanking" "Enable/disable screen blanking" \
-          "D3 VNC Resolution" "Set resolution for headless use" \
           "D4 Composite" "Enable/disable composite output" \
           "D5 4Kp60 HDMI" "Enable 4Kp60 resolution on HDMI0" \
           3>&1 1>&2 2>&3)
       else
         FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Display Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
           "D2 Screen Blanking" "Enable/disable screen blanking" \
-          "D3 VNC Resolution" "Set resolution for headless use" \
           "D4 Composite" "Enable/disable composite output" \
           3>&1 1>&2 2>&3)
       fi
@@ -3310,6 +3417,7 @@ do_advanced_menu() {
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
       "A2 Network Interface Names" "Enable/disable predictable network i/f names" \
       "A3 Network Proxy Settings" "Configure network proxy settings" \
+      "A6 Wayland" "Switch between X and Wayland backends" \
       "A7 Audio Config" "Set audio control system" \
       3>&1 1>&2 2>&3)
   fi
