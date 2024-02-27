@@ -1005,13 +1005,13 @@ do_ssh() {
 
 get_vnc() {
   if is_wayland; then
-    if pgrep wayvnc > /dev/null; then
+    if systemctl status wayvnc.service | grep -q -w active; then
       echo 0
     else
       echo 1
     fi
   else
-    if systemctl status vncserver-x11-serviced.service  | grep -q -w active; then
+    if systemctl status vncserver-x11-serviced.service | grep -q -w active; then
       echo 0
     else
       echo 1
