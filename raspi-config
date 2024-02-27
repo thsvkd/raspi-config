@@ -1043,7 +1043,6 @@ do_vnc() {
       systemctl stop wayvnc.service
 
       # In case wayvnc is already running via older xdg-autostart machanism
-      pkill wayvnc
       if [ -e /etc/xdg/autostart/wayvnc.desktop ] ; then
         rm /etc/xdg/autostart/wayvnc.desktop
       fi
