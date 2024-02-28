@@ -1,3 +1,13 @@
+raspi-config (20240228) bookworm; urgency=medium
+
+  [ Tim Gover ]
+  * Allow EEPROM upgrades
+
+  [ Simon Long ]
+  * Check wayvnc service to determine status
+
+ -- Simon Long <simon@raspberrypi.com>  Wed, 28 Feb 2024 14:54:21 +0000
+
 raspi-config (20240216) bookworm; urgency=medium
 
   [ Simon Long ]
