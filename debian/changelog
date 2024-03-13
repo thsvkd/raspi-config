@@ -1,3 +1,11 @@
+raspi-config (20240313) bookworm; urgency=medium
+
+  * Fix typo
+  * postinst: HandlePowerKey change is only needed once
+  * do_wifi_country: don't run panel netman cset in a chroot environment
+
+ -- Serge Schneider <serge@raspberrypi.com>  Wed, 13 Mar 2024 15:28:34 +0000
+
 raspi-config (20240228) bookworm; urgency=medium
 
   [ Tim Gover ]
