@@ -19,7 +19,7 @@ if dpkg --compare-versions "${2}" lt-nl "20220804"; then
       echo "Regulatory domain was unset"
     fi
   else
-    echo "wpa_cupplicant.conf not found"
+    echo "wpa_supplicant.conf not found"
   fi
 fi
 
