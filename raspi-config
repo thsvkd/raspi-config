@@ -700,6 +700,7 @@ do_change_keyboard_rc_gui () {
   grep -q XKBMODEL /etc/default/keyboard && sed -i "s/XKBMODEL=.*/XKBMODEL=\"$1\"/g" /etc/default/keyboard || echo "XKBMODEL=\"$1\"" >> /etc/default/keyboard
   grep -q XKBLAYOUT /etc/default/keyboard && sed -i "s/XKBLAYOUT=.*/XKBLAYOUT=\"$2\"/g" /etc/default/keyboard || echo "XKBLAYOUT=\"$2\"" >> /etc/default/keyboard
   grep -q XKBVARIANT /etc/default/keyboard && sed -i "s/XKBVARIANT=.*/XKBVARIANT=\"$3\"/g" /etc/default/keyboard || echo "XKBVARIANT=\"$3\"" >> /etc/default/keyboard
+  grep -q XKBOPTIONS /etc/default/keyboard && sed -i "s/XKBOPTIONS=.*/XKBOPTIONS=\"$4\"/g" /etc/default/keyboard || echo "XKBOPTIONS=\"$4\"" >> /etc/default/keyboard
   update_wayfire_keyboard
   update_labwc_keyboard
   if ! is_wayland ; then
@@ -712,6 +713,9 @@ do_change_keyboard_rc_gui () {
     KBSTR="-model $1 -layout $2"
     if [ -n "$3" ] ; then
       KBSTR="$KBSTR -variant $3"
+    fi
+    if [ -n "$4" ] ; then
+      KBSTR="$KBSTR -option -option $4"
     fi
     setxkbmap "$KBSTR"
   fi
