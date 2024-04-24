@@ -1,3 +1,14 @@
+raspi-config (20240424) bookworm; urgency=medium
+
+  [ Franck Talbart ]
+  * Fix for incorrect parsing of pulseaudio status in non-English locales
+
+  [ Simon Long ]
+  * Add setting of keyboard options
+  * Fix grep warning of non-existent file
+
+ -- Simon Long <simon@raspberrypi.com>  Wed, 24 Apr 2024 09:52:18 +0100
+
 raspi-config (20240313) bookworm; urgency=medium
 
   * Fix typo
