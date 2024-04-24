@@ -490,7 +490,7 @@ get_blanking() {
       echo 1
     fi
   elif is_labwc; then
-    if grep -q swayidle $LABWCAST_FILE ; then
+    if [ -e $LABWCAST_FILE ] && grep -q swayidle $LABWCAST_FILE ; then
       echo 0
     else
       echo 1
