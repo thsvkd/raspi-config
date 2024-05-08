@@ -1332,6 +1332,40 @@ do_serial_pi5() {
   whiptail --msgbox "The serial login shell is $SSTATUS\nThe serial interface is $HSTATUS" 20 60 1
 }
 
+get_pci() {
+  if grep -q -E "^dtparam=pciex1_gen=3$" $CONFIG; then
+    echo 0
+  else
+    echo 1
+  fi
+}
+
+do_pci() {
+  DEFAULT=--defaultno
+  if [ $(get_pci) -eq 0 ]; then
+    DEFAULT=
+  fi
+  if [ "$INTERACTIVE" = True ]; then
+    whiptail --yesno "Would you like PCIe Gen 3 to be enabled?" $DEFAULT 20 60 2
+    RET=$?
+  else
+    RET=$1
+  fi
+  if [ $RET -eq 0 ]; then
+    set_config_var dtparam=pciex1_gen 3 $CONFIG
+    STATUS=enabled
+  elif [ $RET -eq 1 ]; then
+    clear_config_var dtparam=pciex1_gen $CONFIG
+    STATUS=disabled
+  else
+    return $RET
+  fi
+
+  if [ "$INTERACTIVE" = True ]; then
+    whiptail --msgbox "PCIe Gen 3 is $STATUS" 20 60 1
+  fi
+}
+
 disable_raspi_config_at_boot() {
   if [ -e /etc/profile.d/raspi-config.sh ]; then
     rm -f /etc/profile.d/raspi-config.sh
@@ -3411,6 +3445,7 @@ do_advanced_menu() {
       "A5 Bootloader Version" "Select latest or factory default bootloader software" \
       "A6 Wayland" "Switch between X and Wayland backends" \
       "A7 Audio Config" "Set audio control system" \
+      "A8 PCIe Speed" "Set PCIe x1 port speed" \
       3>&1 1>&2 2>&3)
   elif is_pi ; then
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
@@ -3440,6 +3475,7 @@ do_advanced_menu() {
       A5\ *) do_boot_rom ;;
       A6\ *) do_wayland ;;
       A7\ *) do_audioconf ;;
+      A8\ *) do_pci ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi

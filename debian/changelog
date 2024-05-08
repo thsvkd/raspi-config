@@ -1,3 +1,10 @@
+raspi-config (20240508) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Add PCIe speed setting
+
+ -- Simon Long <simon@raspberrypi.com>  Wed, 08 May 2024 11:19:15 +0100
+
 raspi-config (20240424) bookworm; urgency=medium
 
   [ Franck Talbart ]
