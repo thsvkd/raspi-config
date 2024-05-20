@@ -1090,6 +1090,45 @@ do_vnc() {
   fi
 }
 
+get_rpi_connect() {
+  if sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q status rpi-connect.service | grep -q -w active; then
+    echo 0
+  else
+    echo 1
+  fi
+}
+
+do_rpi_connect() {
+  DEFAULT=--defaultno
+  if [ $(get_rpi_connect) -eq 0 ]; then
+    DEFAULT=
+  fi
+  if [ "$INTERACTIVE" = True ]; then
+    whiptail --yesno "Would you like Raspberry Pi Connect to be enabled?" $DEFAULT 20 60 2
+    RET=$?
+  else
+    RET=$1
+  fi
+  if [ $RET -eq 0 ]; then
+    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q enable rpi-connect.service
+    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q start rpi-connect.service
+    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q enable rpi-connect-wayvnc.service
+    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q start rpi-connect-wayvnc.service
+    STATUS=enabled
+  elif [ $RET -eq 1 ]; then
+    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q disable rpi-connect-wayvnc.service
+    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop rpi-connect-wayvnc.service
+    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q disable rpi-connect.service
+    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop rpi-connect.service
+    STATUS=disabled
+  else
+    return $RET
+  fi
+  if [ "$INTERACTIVE" = True ]; then
+    whiptail --msgbox "Raspberry Pi Connect is $STATUS" 20 60 1
+  fi
+}
+
 get_spi() {
   if grep -q -E "^(device_tree_param|dtparam)=([^,]*,)*spi(=(on|true|yes|1))?(,.*)?$" $CONFIG; then
     echo 0
@@ -3356,12 +3395,13 @@ do_interface_menu() {
   if is_pi ; then
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Interfacing Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
       "I1 SSH" "Enable/disable remote command line access using SSH" \
-      "I2 VNC" "Enable/disable graphical remote desktop access" \
-      "I3 SPI" "Enable/disable automatic loading of SPI kernel module" \
-      "I4 I2C" "Enable/disable automatic loading of I2C kernel module" \
-      "I5 Serial Port" "Enable/disable shell messages on the serial connection" \
-      "I6 1-Wire" "Enable/disable one-wire interface" \
-      "I7 Remote GPIO" "Enable/disable remote access to GPIO pins" \
+      "I2 RPi Connect" "Enable/disable Raspberry Pi Connect" \
+      "I3 VNC" "Enable/disable graphical remote desktop access" \
+      "I4 SPI" "Enable/disable automatic loading of SPI kernel module" \
+      "I5 I2C" "Enable/disable automatic loading of I2C kernel module" \
+      "I6 Serial Port" "Enable/disable shell messages on the serial connection" \
+      "I7 1-Wire" "Enable/disable one-wire interface" \
+      "I8 Remote GPIO" "Enable/disable remote access to GPIO pins" \
       3>&1 1>&2 2>&3)
   else
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Interfacing Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
@@ -3374,12 +3414,13 @@ do_interface_menu() {
   elif [ $RET -eq 0 ]; then
     case "$FUN" in
       I1\ *) do_ssh ;;
-      I2\ *) do_vnc ;;
-      I3\ *) do_spi ;;
-      I4\ *) do_i2c ;;
-      I5\ *) if is_pifive ; then do_serial_pi5 ; else do_serial ; fi ;;
-      I6\ *) do_onewire ;;
-      I7\ *) do_rgpio ;;
+      I2\ *) do_rpi_connect ;;
+      I3\ *) do_vnc ;;
+      I4\ *) do_spi ;;
+      I5\ *) do_i2c ;;
+      I6\ *) if is_pifive ; then do_serial_pi5 ; else do_serial ; fi ;;
+      I7\ *) do_onewire ;;
+      I8\ *) do_rgpio ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
