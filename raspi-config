@@ -1091,7 +1091,11 @@ do_vnc() {
 }
 
 get_rpi_connect() {
-  if sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q status rpi-connect.service | grep -q -w active; then
+  PREFIX=""
+  if [ -n "$SUDO_USER" ] ; then
+    PREFIX="sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus "
+  fi
+  if $PREFIX systemctl --user -q status rpi-connect.service | grep -q -w active; then
     echo 0
   else
     echo 1
@@ -1099,27 +1103,37 @@ get_rpi_connect() {
 }
 
 do_rpi_connect() {
+  PREFIX=""
+  if [ -n "$SUDO_USER" ] ; then
+    PREFIX="sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus "
+  fi
   DEFAULT=--defaultno
   if [ $(get_rpi_connect) -eq 0 ]; then
     DEFAULT=
   fi
+  APT_GET_FLAGS=""
   if [ "$INTERACTIVE" = True ]; then
     whiptail --yesno "Would you like Raspberry Pi Connect to be enabled?" $DEFAULT 20 60 2
     RET=$?
   else
+    APT_GET_FLAGS="-y"
     RET=$1
   fi
   if [ $RET -eq 0 ]; then
-    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q enable rpi-connect.service
-    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q start rpi-connect.service
-    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q enable rpi-connect-wayvnc.service
-    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q start rpi-connect-wayvnc.service
-    STATUS=enabled
+    if is_installed rpi-connect || apt-get install "$APT_GET_FLAGS" rpi-connect; then
+      $PREFIX systemctl --user -q enable rpi-connect.service
+      $PREFIX systemctl --user -q start rpi-connect.service
+      $PREFIX systemctl --user -q enable rpi-connect-wayvnc.service
+      $PREFIX systemctl --user -q start rpi-connect-wayvnc.service
+      STATUS=enabled
+    else
+      return 1
+    fi
   elif [ $RET -eq 1 ]; then
-    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q disable rpi-connect-wayvnc.service
-    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop rpi-connect-wayvnc.service
-    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q disable rpi-connect.service
-    sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus systemctl --user -q stop rpi-connect.service
+    $PREFIX systemctl --user -q disable rpi-connect-wayvnc.service
+    $PREFIX systemctl --user -q stop rpi-connect-wayvnc.service
+    $PREFIX systemctl --user -q disable rpi-connect.service
+    $PREFIX systemctl --user -q stop rpi-connect.service
     STATUS=disabled
   else
     return $RET
