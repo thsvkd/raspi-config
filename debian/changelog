@@ -1,3 +1,10 @@
+raspi-config (20240521) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Add Raspberry Pi Connect switching
+
+ -- Simon Long <simon@raspberrypi.com>  Tue, 21 May 2024 10:19:02 +0100
+
 raspi-config (20240510) bookworm; urgency=medium
 
   [ Simon Long ]
