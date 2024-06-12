@@ -1,3 +1,9 @@
+raspi-config (20240612) bookworm; urgency=medium
+
+  * Strip null byte from os_prefix
+
+ -- Serge Schneider <serge@raspberrypi.com>  Wed, 12 Jun 2024 11:10:46 +0100
+
 raspi-config (20240521) bookworm; urgency=medium
 
   [ Simon Long ]
