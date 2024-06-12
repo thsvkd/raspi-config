@@ -40,7 +40,7 @@ is_pi () {
 
 if is_pi ; then
   if [ -e /proc/device-tree/chosen/os_prefix ]; then
-    PREFIX="$(cat /proc/device-tree/chosen/os_prefix)"
+    PREFIX="$(tr -d '\0' < /proc/device-tree/chosen/os_prefix)"
   fi
   CMDLINE="/boot${FIRMWARE}/${PREFIX}cmdline.txt"
 else
