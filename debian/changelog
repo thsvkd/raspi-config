@@ -1,3 +1,10 @@
+raspi-config (20240618) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Do not offer RPi Connect on 32-bit
+
+ -- Simon Long <simon@raspberrypi.com>  Tue, 18 Jun 2024 14:54:01 +0100
+
 raspi-config (20240612) bookworm; urgency=medium
 
   * Strip null byte from os_prefix
