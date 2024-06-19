@@ -1404,8 +1404,10 @@ get_pci() {
 
 do_pci() {
   DEFAULT=--defaultno
+  CURRENT=1
   if [ $(get_pci) -eq 0 ]; then
     DEFAULT=
+    CURRENT=0
   fi
   if [ "$INTERACTIVE" = True ]; then
     whiptail --yesno "Would you like PCIe Gen 3 to be enabled?" $DEFAULT 20 60 2
@@ -1421,6 +1423,9 @@ do_pci() {
     STATUS=disabled
   else
     return $RET
+  fi
+  if [ $RET -ne $CURRENT ]; then
+    ASK_TO_REBOOT=1
   fi
 
   if [ "$INTERACTIVE" = True ]; then
