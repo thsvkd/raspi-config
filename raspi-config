@@ -3006,6 +3006,14 @@ is_uname_current() {
 }
 
 enable_overlayfs() {
+  if [ "$(awk '/MemTotal/{print $2; exit}' /proc/meminfo)" -le 262144 ]; then
+    if [ "$INTERACTIVE" = True ]; then
+      whiptail --msgbox "At least 512MB of RAM is recommended for overlay filesystem" 20 60 1
+    else
+      echo "At least 512MB of RAM is recommended for overlay filesystem"
+    fi
+    return 1
+  fi
   is_installed overlayroot || apt-get install -y overlayroot
   # mount the boot partition as writable if it isn't already
   if [ $(get_bootro_now) -eq 0 ] ; then
