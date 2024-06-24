@@ -1,3 +1,10 @@
+raspi-config (20240624+1) bookworm; urgency=medium
+
+  * Add RAM check for overlay filesystem
+  * Add gbp.conf
+
+ -- Serge Schneider <serge@raspberrypi.com>  Mon, 24 Jun 2024 15:51:27 +0100
+
 raspi-config (20240624) bookworm; urgency=medium
 
   [ Simon Long]
