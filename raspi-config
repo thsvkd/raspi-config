@@ -3422,40 +3422,16 @@ do_display_menu() {
 
 do_interface_menu() {
   if is_pi ; then
-    if is_wayland; then
-      if is_64bit; then
-        FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Interfacing Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-          "I1 SSH" "Enable/disable remote command line access using SSH" \
-          "I2 RPi Connect" "Enable/disable Raspberry Pi Connect" \
-          "I3 VNC" "Enable/disable graphical remote desktop access" \
-          "I4 SPI" "Enable/disable automatic loading of SPI kernel module" \
-          "I5 I2C" "Enable/disable automatic loading of I2C kernel module" \
-          "I6 Serial Port" "Enable/disable shell messages on the serial connection" \
-          "I7 1-Wire" "Enable/disable one-wire interface" \
-          "I8 Remote GPIO" "Enable/disable remote access to GPIO pins" \
-          3>&1 1>&2 2>&3)
-      else
-        FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Interfacing Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-          "I1 SSH" "Enable/disable remote command line access using SSH" \
-          "I3 VNC" "Enable/disable graphical remote desktop access" \
-          "I4 SPI" "Enable/disable automatic loading of SPI kernel module" \
-          "I5 I2C" "Enable/disable automatic loading of I2C kernel module" \
-          "I6 Serial Port" "Enable/disable shell messages on the serial connection" \
-          "I7 1-Wire" "Enable/disable one-wire interface" \
-          "I8 Remote GPIO" "Enable/disable remote access to GPIO pins" \
-          3>&1 1>&2 2>&3)
-      fi
-    else
-      FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Interfacing Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-        "I1 SSH" "Enable/disable remote command line access using SSH" \
-        "I3 VNC" "Enable/disable graphical remote desktop access" \
-        "I4 SPI" "Enable/disable automatic loading of SPI kernel module" \
-        "I5 I2C" "Enable/disable automatic loading of I2C kernel module" \
-        "I6 Serial Port" "Enable/disable shell messages on the serial connection" \
-        "I7 1-Wire" "Enable/disable one-wire interface" \
-        "I8 Remote GPIO" "Enable/disable remote access to GPIO pins" \
-        3>&1 1>&2 2>&3)
-    fi
+    FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Interfacing Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+      "I1 SSH" "Enable/disable remote command line access using SSH" \
+      "I2 RPi Connect" "Enable/disable Raspberry Pi Connect" \
+      "I3 VNC" "Enable/disable graphical remote desktop access" \
+      "I4 SPI" "Enable/disable automatic loading of SPI kernel module" \
+      "I5 I2C" "Enable/disable automatic loading of I2C kernel module" \
+      "I6 Serial Port" "Enable/disable shell messages on the serial connection" \
+      "I7 1-Wire" "Enable/disable one-wire interface" \
+      "I8 Remote GPIO" "Enable/disable remote access to GPIO pins" \
+      3>&1 1>&2 2>&3)
   else
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Interfacing Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
       "I2 SSH" "Enable/disable remote command line access using SSH" \
