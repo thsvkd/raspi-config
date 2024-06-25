@@ -1130,19 +1130,19 @@ do_rpi_connect() {
   fi
   if [ $RET -eq 0 ]; then
     if is_installed rpi-connect || apt-get install "$APT_GET_FLAGS" rpi-connect; then
-      $PREFIX systemctl --user -q enable rpi-connect.service
-      $PREFIX systemctl --user -q start rpi-connect.service
-      $PREFIX systemctl --user -q enable rpi-connect-wayvnc.service
-      $PREFIX systemctl --user -q start rpi-connect-wayvnc.service
+      systemctl --global -q enable rpi-connect.service
+      $PREFIX systemctl --global -q start rpi-connect.service
+      systemctl --global -q enable rpi-connect-wayvnc.service
+      $PREFIX systemctl --global -q start rpi-connect-wayvnc.service
       STATUS=enabled
     else
       return 1
     fi
   elif [ $RET -eq 1 ]; then
-    $PREFIX systemctl --user -q disable rpi-connect-wayvnc.service
-    $PREFIX systemctl --user -q stop rpi-connect-wayvnc.service
-    $PREFIX systemctl --user -q disable rpi-connect.service
-    $PREFIX systemctl --user -q stop rpi-connect.service
+    systemctl --global -q disable rpi-connect-wayvnc.service
+    $PREFIX systemctl --global -q stop rpi-connect-wayvnc.service
+    systemctl --global -q disable rpi-connect.service
+    $PREFIX systemctl --global -q stop rpi-connect.service
     STATUS=disabled
   else
     return $RET
