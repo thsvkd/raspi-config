@@ -564,6 +564,7 @@ do_blanking() {
     if [ "$RET" -eq "$CURRENT" ]; then
       ASK_TO_REBOOT=1
     fi
+    mkdir -p "$HOMEDIR/.config/labwc/"
     if [ "$RET" -eq 0 ] ; then
       echo "swayidle -w timeout 600 'wlopm --off \\*' resume 'wlopm --on \\*' &" >> $LABWCAST_FILE
       STATUS=enabled
