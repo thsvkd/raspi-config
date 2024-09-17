@@ -1,3 +1,10 @@
+raspi-config (20240917) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Update name of Chromium package
+
+ -- Simon Long <simon@raspberrypi.com>  Tue, 17 Sep 2024 13:57:24 +0100
+
 raspi-config (20240802) bookworm; urgency=medium
 
   [ Simon Long ]
