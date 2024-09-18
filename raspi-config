@@ -570,7 +570,9 @@ do_blanking() {
       echo "swayidle -w timeout 600 'wlopm --off \\*' resume 'wlopm --on \\*' &" >> $LABWCAST_FILE
       STATUS=enabled
     elif [ "$RET" -eq 1 ]; then
-      sed -i '/swayidle/d' $LABWCAST_FILE
+      if [ -e $LABWCAST_FILE ] ; then
+        sed -i '/swayidle/d' $LABWCAST_FILE
+      fi
       STATUS=disabled
     else
       return "$RET"
