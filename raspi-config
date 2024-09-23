@@ -3280,28 +3280,33 @@ do_usb_current() {
 
 get_squeekboard() {
   if ! is_installed squeekboard ; then
-    echo 1
+    echo 2
   elif [ -e /etc/xdg/autostart/squeekboard.desktop ] ; then
-    echo 0
+    if grep -q sbtest /etc/xdg/autostart/squeekboard.desktop ; then
+      echo 1
+    else
+      echo 0
+    fi
   else
-    echo 1
+    echo 2
   fi
 }
 
 do_squeekboard() {
-  DEFAULT=--defaultno
-  if [ $(get_squeekboard) -eq 0 ]; then
-    DEFAULT=
-  fi
   if [ "$INTERACTIVE" = True ]; then
-    whiptail --yesno "Would you like the on-screen keyboard to be enabled?" $DEFAULT 20 60 2
-    RET=$?
+    OPT=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "On-screen Keyboard" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+      "S1 Always On" "On-screen keyboard always enabled" \
+      "S2 Autodetect" "On-screen keyboard enabled if touch device found" \
+      "S3 Always Off" "On-screen keyboard disabled" \
+      3>&1 1>&2 2>&3)
   else
-    RET=$1
+    OPT=$1
+    true
   fi
-  if [ $RET -eq 0 ]; then
-    is_installed squeekboard || apt-get install -y squeekboard
-    cat > /etc/xdg/autostart/squeekboard.desktop << EOF
+  case "$OPT" in
+    S1*)
+      is_installed squeekboard || apt-get install -y squeekboard
+      cat > /etc/xdg/autostart/squeekboard.desktop << EOF
 [Desktop Entry]
 Name=Squeekboard
 Comment=Launch the on-screen keyboard
@@ -3310,23 +3315,51 @@ Terminal=false
 Type=Application
 NoDisplay=true
 EOF
-    if ! grep -q squeekboard /usr/share/labwc/autostart ; then
-      echo "/usr/bin/squeekboard &" >> /usr/share/labwc/autostart
-    fi
-    PREFIX=""
-    if [ -n "$SUDO_USER" ] ; then
-      PREFIX="sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus "
-    fi
-    $PREFIX squeekboard > /dev/null 2> /dev/null &
-    STATUS=enabled
-  elif [ $RET -eq 1 ]; then
-    pkill squeekboard
-    rm -f /etc/xdg/autostart/squeekboard.desktop
-    sed -i '/squeekboard/d' /usr/share/labwc/autostart
-    STATUS=disabled
-  else
-    return $RET
-  fi
+      sed -i '/sbtest/d' /usr/share/labwc/autostart
+      if ! grep -q squeekboard /usr/share/labwc/autostart ; then
+        echo "/usr/bin/squeekboard &" >> /usr/share/labwc/autostart
+      fi
+      PREFIX=""
+      if [ -n "$SUDO_USER" ] ; then
+        PREFIX="sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus "
+      fi
+      $PREFIX squeekboard > /dev/null 2> /dev/null &
+      STATUS="enabled"
+      ;;
+    S2*)
+      is_installed squeekboard || apt-get install -y squeekboard
+      cat > /etc/xdg/autostart/squeekboard.desktop << EOF
+[Desktop Entry]
+Name=Squeekboard
+Comment=Launch the on-screen keyboard
+Exec=/usr/bin/sbtest
+Terminal=false
+Type=Application
+NoDisplay=true
+EOF
+      sed -i '/squeekboard/d' /usr/share/labwc/autostart
+      if ! grep -q sbtest /usr/share/labwc/autostart ; then
+        echo "/usr/bin/sbtest &" >> /usr/share/labwc/autostart
+      fi
+      PREFIX=""
+      if [ -n "$SUDO_USER" ] ; then
+        PREFIX="sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus "
+      fi
+      pkill squeekboard
+      $PREFIX sbtest > /dev/null 2> /dev/null &
+      STATUS="using autodetect"
+      ;;
+    S3*)
+      pkill squeekboard
+      rm -f /etc/xdg/autostart/squeekboard.desktop
+      sed -i '/squeekboard/d' /usr/share/labwc/autostart
+      sed -i '/sbtest/d' /usr/share/labwc/autostart
+      STATUS="disabled"
+      ;;
+    *)
+      return $OPT
+      ;;
+  esac
   if [ "$INTERACTIVE" = True ]; then
     whiptail --msgbox "The onscreen keyboard is $STATUS" 20 60 1
   fi
