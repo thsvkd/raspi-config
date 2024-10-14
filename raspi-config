@@ -1130,7 +1130,7 @@ do_rpi_connect() {
     fi
   elif [ $RET -eq 1 ]; then
     if [ "$INTERACTIVE" = True ]; then
-      whiptail --yesno "Would you like to enable SSH over Raspberry Pi Connect?" --defaultno 20 60 2
+      whiptail --yesno "Would you like to enable remote shell access over Raspberry Pi Connect?" --defaultno 20 60 2
       RET=$?
     fi
     if [ $RET -eq 0 ]; then
