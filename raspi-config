@@ -1143,7 +1143,7 @@ do_rpi_connect() {
         else
           $PREFIX rpi-connect on > /dev/null 2>&1
         fi
-        STATUS="SSH via Raspberry Pi Connect is enabled"
+        STATUS="Remote shell access via Raspberry Pi Connect is enabled"
       else
         return 1
       fi
