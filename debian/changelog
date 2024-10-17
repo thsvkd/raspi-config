@@ -1,3 +1,10 @@
+raspi-config (20241017) bookworm; urgency=medium
+
+  [ Paul Mucur ]
+  * Update version check for rpi-connect
+
+ -- Simon Long <simon@raspberrypi.com>  Thu, 17 Oct 2024 11:27:16 +0100
+
 raspi-config (20241016) bookworm; urgency=medium
 
   [ Simon Long ]
