@@ -680,6 +680,33 @@ update_labwc_keyboard() {
   fi
 }
 
+update_squeekboard() {
+  LAYOUT1=$(grep XKBLAYOUT /etc/default/keyboard | cut -d= -f2 | tr -d '"' | cut -d, -f1)
+  VARIANT1=$(grep XKBVARIANT /etc/default/keyboard | cut -d= -f2 | tr -d '"' | cut -d, -f1)
+  LAYOUT2=$(grep XKBLAYOUT /etc/default/keyboard | cut -d= -f2 | tr -d '"' | cut -d, -f2 -s)
+  VARIANT2=$(grep XKBVARIANT /etc/default/keyboard | cut -d= -f2 | tr -d '"' | cut -d, -f2 -s)
+  GSET="[('xkb', '$LAYOUT1"
+  if [ -z "$VARIANT1" ] ; then
+    GSET=$GSET"')"
+  else
+    GSET=$GSET"+$VARIANT1')"
+  fi
+  if ! [ -z "$LAYOUT2" ] ; then
+    GSET=$GSET", ('xkb', '$LAYOUT2"
+    if [ -z "$VARIANT2" ] ; then
+      GSET=$GSET"')"
+    else
+      GSET=$GSET"+$VARIANT2')"
+    fi
+  fi
+  GSET=$GSET"]"
+  PREFIX=""
+  if [ -n "$SUDO_USER" ] ; then
+    PREFIX="sudo -u $USER "
+  fi
+  $PREFIX gsettings set org.gnome.desktop.input-sources sources "$GSET"
+}
+
 do_configure_keyboard() {
   printf "Reloading keymap. This may take a short while\n"
   rm -f /etc/console-setup/cached_*
@@ -692,6 +719,7 @@ do_configure_keyboard() {
   fi
   update_wayfire_keyboard
   update_labwc_keyboard
+  update_squeekboard
   if [ "$INIT" = "systemd" ]; then
     systemctl restart keyboard-setup
   fi
@@ -707,6 +735,7 @@ do_change_keyboard_rc_gui () {
   grep -q XKBOPTIONS /etc/default/keyboard && sed -i "s/XKBOPTIONS=.*/XKBOPTIONS=\"$4\"/g" /etc/default/keyboard || echo "XKBOPTIONS=\"$4\"" >> /etc/default/keyboard
   update_wayfire_keyboard
   update_labwc_keyboard
+  update_squeekboard
   if ! is_wayland ; then
     invoke-rc.d keyboard-setup start
   fi
