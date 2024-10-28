@@ -1,3 +1,10 @@
+raspi-config (20241028) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Add Squeekboard layout setting
+
+ -- Simon Long <simon@raspberrypi.com>  Mon, 28 Oct 2024 07:30:02 +0000
+
 raspi-config (20241025) bookworm; urgency=medium
 
   [ Simon Long ]
