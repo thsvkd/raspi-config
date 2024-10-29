@@ -704,7 +704,26 @@ update_squeekboard() {
     fi
   fi
   GSET=$GSET"]"
-  $PREFIX gsettings set org.gnome.desktop.input-sources sources "$GSET"
+  if ! [ -e /etc/dconf/profile/user ] ; then
+    mkdir -p "/etc/dconf/profile/"
+    echo "user-db:user\nsystem-db:local" >> /etc/dconf/profile/user
+  fi
+  FILE=/etc/dconf/db/local.d/00_keyboard
+  if [ -e $FILE ] ; then
+    if grep -q "^sources" $FILE ; then
+      sed $FILE -i -e "s/^sources=.*/sources=$GSET/"
+    else
+      if grep -q "\[org/gnome/desktop/input-sources\]" $FILE ; then
+        sed $FILE -i -e "s#\[org/gnome/desktop/input-sources\]#\[org/gnome/desktop/input-sources\]\nsources=$GSET#" 
+      else
+        echo "[org/gnome/desktop/input-sources]\nsources=$GSET" >> $FILE
+      fi
+    fi
+  else
+    mkdir -p "/etc/dconf/db/local.d/"
+    echo "[org/gnome/desktop/input-sources]\nsources=$GSET" > $FILE
+  fi
+  dconf update
   if [ "$1" = restart ] ; then
     if pgrep squeekboard > /dev/null ; then
       pkill squeekboard
