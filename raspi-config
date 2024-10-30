@@ -539,8 +539,8 @@ do_blanking() {
         if grep -q "\[idle\]" $WAYFIRE_FILE ; then
           sed -i 's/\[idle]/[idle]\ndpms_timeout=600/' $WAYFIRE_FILE
         else
-          echo '\n[idle]' >> $WAYFIRE_FILE
-          echo 'dpms_timeout=600' >> $WAYFIRE_FILE
+          echo '\n[idle]\ndpms_timeout=600' >> $WAYFIRE_FILE
+          chown $USER:$USER $WAYFIRE_FILE
         fi
       fi
       STATUS=enabled
@@ -551,8 +551,8 @@ do_blanking() {
         if grep -q "\[idle\]" $WAYFIRE_FILE ; then
           sed -i 's/\[idle]/[idle]\ndpms_timeout=-1/' $WAYFIRE_FILE
         else
-          echo '\n[idle]' >> $WAYFIRE_FILE
-          echo 'dpms_timeout=-1' >> $WAYFIRE_FILE
+          echo '\n[idle]\ndpms_timeout=-1' >> $WAYFIRE_FILE
+          chown $USER:$USER $WAYFIRE_FILE
         fi
       fi
       STATUS=disabled
@@ -573,6 +573,7 @@ do_blanking() {
     chown -R $USER:$USER "$HOMEDIR/.config/labwc/"
     if [ "$RET" -eq 0 ] ; then
       echo "swayidle -w timeout 600 'wlopm --off \\*' resume 'wlopm --on \\*' &" >> $LABWCAST_FILE
+      chown $USER:$USER $LABWCAST_FILE
       STATUS=enabled
     elif [ "$RET" -eq 1 ]; then
       if [ -e $LABWCAST_FILE ] ; then
@@ -585,7 +586,7 @@ do_blanking() {
   else
     if [ "$INTERACTIVE" = True ]; then
       if [ "$(dpkg -l xscreensaver | tail -n 1 | cut -d ' ' -f 1)" = "ii" ]; then
-        whiptail --msgbox "Warning: xscreensaver is installed may override raspi-config settings" 20 60 2
+        whiptail --msgbox "Warning: xscreensaver is installed and may override raspi-config settings" 20 60 2
       fi
       whiptail --yesno "Would you like to enable screen blanking?" $DEFAULT 20 60 2
       RET=$?
@@ -634,7 +635,7 @@ update_wayfire_keyboard() {
       install -o "$USER" -g "$USER" -d "$CONFIG_DIR"
     fi
     cp /etc/wayfire/template.ini $UFILE
-    chown -R $USER:$USER $UFILE
+    chown $USER:$USER $UFILE
   fi
   if [ -e $UFILE ] ; then
     grep -q "\\[input\\]" $UFILE || printf "\n[input]" >> $UFILE
