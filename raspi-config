@@ -677,7 +677,7 @@ update_labwc_keyboard() {
     if grep -q XKB_DEFAULT_OPTIONS $UFILE ; then sed -i s/XKB_DEFAULT_OPTIONS.*/XKB_DEFAULT_OPTIONS=$OPTIONS/ $UFILE ; else echo XKB_DEFAULT_OPTIONS=$OPTIONS >> $UFILE ; fi
   fi
   if is_labwc ; then
-    kill -HUP `pgrep labwc`  # does the equivalent of labwc --reconfigure, but works as sudo...
+    kill -HUP `pgrep -x labwc`  # does the equivalent of labwc --reconfigure, but works as sudo...
   fi
 }
 
