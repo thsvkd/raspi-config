@@ -1,3 +1,10 @@
+raspi-config (20241030) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Make blanking control files owned by user
+
+ -- Simon Long <simon@raspberrypi.com>  Wed, 30 Oct 2024 09:13:27 +0000
+
 raspi-config (20241029) bookworm; urgency=medium
 
   [ Simon Long ]
