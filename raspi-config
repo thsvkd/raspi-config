@@ -1887,22 +1887,24 @@ get_bootloader_filename() {
    else
       EEPATH="${EEBASE}/default/pieeprom*.bin"
    fi
+   EXACT_MATCH=0
    for filename in $(find $EEPATH -name "pieeprom*.bin" 2>/dev/null | sort); do
       FILDATE=$(date -d "$(echo $filename | sed 's/.*\///g' | cut -d - -f 2- | cut -d . -f 1)" +%Y%m%d)
+      FILNAME=$filename
       if [ $FILDATE -eq $CURDATE ]; then
-         FILNAME=$filename
+         EXACT_MATCH=1
          break
-      elif [ "$FILDATE" ">" "$CURDATE" ]; then
-         # If there is no exact match then try an upgrade
-         FILNAME=$filename
       fi
    done
-   if [ -z "$FILNAME" ]; then
+   if [ $EXACT_MATCH != 1 ]; then
       if [ "$INTERACTIVE" = True ]; then
-         whiptail --msgbox "Current EEPROM version $(date -d $CURDATE +%Y-%m-%d) or newer not found - aborting.\n\nTry updating the rpi-eeprom APT package." 20 70 2
+         whiptail --yesno "Current EEPROM version $(date -d $CURDATE +%Y-%m-%d) or newer not found.\n\nTry updating the rpi-eeprom APT package.\n\nInstall latest local $(basename $FILNAME) anyway?" 20 70 3
+         DEFAULTS=$?
+         if [ "$DEFAULTS" -ne 0 ]; then
+            FILNAME="none" # no
+         fi
       fi
    fi
-   echo "$FILNAME"
 }
 
 do_network_install_ui() {
@@ -1917,9 +1919,13 @@ do_network_install_ui() {
   fi
 
   if [ $? -eq 0 ]; then
-    FILNAME=$(get_bootloader_filename)
+    get_bootloader_filename
     if [ "${FILNAME}" = "none" ]; then
-       return 1
+       if [ "$INTERACTIVE" = True ]; then
+          return 0
+       else
+          return 1
+       fi
     fi
     EECFG=$(mktemp)
     rpi-eeprom-config > $EECFG
@@ -1954,10 +1960,6 @@ do_boot_order() {
     true
   fi
   if [ $? -eq 0 ]; then
-    FILNAME=$(get_bootloader_filename)
-    if [ "${FILNAME}" = "none" ]; then
-       return 1
-    fi
     EECFG=$(mktemp)
     rpi-eeprom-config > $EECFG
     sed $EECFG -i -e "/SD_BOOT_MAX_RETRIES/d"
@@ -2002,6 +2004,14 @@ do_boot_order() {
         return 1
         ;;
     esac
+    get_bootloader_filename
+    if [ "${FILNAME}" = "none" ]; then
+       if [ "$INTERACTIVE" = True ]; then
+          return 0
+       else
+          return 1
+       fi
+    fi
     rpi-eeprom-config --apply $EECFG $FILNAME
     ASK_TO_REBOOT=1
     if [ "$INTERACTIVE" = True ]; then
@@ -2043,26 +2053,19 @@ do_boot_rom() {
       DEFAULTS=$2
     fi
     if [ "$DEFAULTS" -eq 0 ]; then # yes
-      EEBASE=$(rpi-eeprom-update | grep RELEASE | sed 's/.*(//g' | sed 's/[^\/]*)//g')
-      if grep FIRMWARE_RELEASE_STATUS /etc/default/rpi-eeprom-update | egrep -Eq "stable|latest"; then
-        EEPATH="${EEBASE}/latest/"
-      else
-        EEPATH="${EEBASE}/default/"
+      get_bootloader_filename
+      if [ "${FILNAME}" = "none" ]; then
+         if [ "$INTERACTIVE" = True ]; then
+            return 0
+         else
+            return 1
+         fi
       fi
-      MATCH=".*/pieeprom-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].bin"
-      FILNAME="$(find "${EEPATH}" -maxdepth 1 -type f -regex "${MATCH}" | sort -r | head -n1)"
-      if [ -z "$FILNAME" ]; then
-        if [ "$INTERACTIVE" = True ]; then
-          whiptail --msgbox "No EEPROM bin file found - cannot reset to defaults,\n\nTry updating APT rpi-eeprom package and selecting the latest release." 20 60 2
-        fi
-      else
-        rpi-eeprom-update -d -f $FILNAME
-        if [ "$INTERACTIVE" = True ]; then
-          whiptail --msgbox "Bootloader reset to default configuration" 20 60 2
-        fi
+      rpi-eeprom-update -d -f $FILNAME
+      if [ "$INTERACTIVE" = True ]; then
+         whiptail --msgbox "Bootloader reset to default configuration" 20 60 2
       fi
     else
-      rpi-eeprom-update
       if [ "$INTERACTIVE" = True ]; then
         whiptail --msgbox "Bootloader not reset to defaults" 20 60 2
       fi
