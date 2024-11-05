@@ -1,3 +1,12 @@
+raspi-config (20241105) bookworm; urgency=medium
+
+  [ Tim Gover ]
+  * Add option to control when network install UI is displayed
+  * Pick latest firmware by default
+  * Improve bootloader version checks
+
+ -- Simon Long <simon@raspberrypi.com>  Tue, 05 Nov 2024 10:21:01 +0000
+
 raspi-config (20241030) bookworm; urgency=medium
 
   [ Simon Long ]
