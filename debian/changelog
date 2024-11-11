@@ -1,3 +1,9 @@
+raspi-config (20241111) bookworm; urgency=medium
+
+  * autologin: ensure drop-in directory exists, remove when not needed
+
+ -- Serge Schneider <serge@raspberrypi.com>  Mon, 11 Nov 2024 13:48:55 +0000
+
 raspi-config (20241105) bookworm; urgency=medium
 
   [ Tim Gover ]
