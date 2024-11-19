@@ -891,6 +891,9 @@ do_wifi_country() {
     nmcli radio wifi on
   elif hash rfkill 2> /dev/null; then
     rfkill unblock wifi
+    if [ -f /var/lib/NetworkManager/NetworkManager.state ]; then
+      sed -i 's/^WirelessEnabled=.*/WirelessEnabled=true/' /var/lib/NetworkManager/NetworkManager.state
+    fi
   fi
   if is_pi; then
     for filename in /var/lib/systemd/rfkill/*:wlan ; do
