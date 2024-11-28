@@ -1,3 +1,10 @@
+raspi-config (20241128) bookworm; urgency=medium
+
+  [ Simon Long ]
+  * Write labwc keymap to user file, not system global
+
+ -- Simon Long <simon@raspberrypi.com>  Thu, 28 Nov 2024 13:50:31 +0000
+
 raspi-config (20241119) bookworm; urgency=medium
 
   * do_wifi_country: Update NM state file if NM service if not running
