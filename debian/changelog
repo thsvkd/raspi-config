@@ -1,3 +1,11 @@
+raspi-config (20241202) bookworm; urgency=medium
+
+  [ Richard Oliver ]
+  * Add 'Logging' to 'System Options' (#262)
+  * init: Remove 'shift' key cpu governor behaviour
+
+ -- Serge Schneider <serge@raspberrypi.com>  Mon, 02 Dec 2024 08:41:05 +0000
+
 raspi-config (20241129) bookworm; urgency=medium
 
   [ Simon Long ]
