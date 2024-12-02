@@ -1834,6 +1834,40 @@ do_browser() {
   fi
 }
 
+do_journald_storage() {
+  if [ "$INTERACTIVE" = True ]; then
+    RES=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Select Log Location" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+      "1" "Default" \
+      "2" "Volatile" \
+      "3" "Persistent" \
+      "4" "Auto" \
+      "5" "None" \
+      3>&1 1>&2 2>&3)
+  else
+    RES=""
+    true
+  fi
+  if [ $? -eq 0 ]; then
+    case $RES in
+      2) JSTRING="volatile"
+      ;;
+      3) JSTRING="persistent"
+      ;;
+      4) JSTRING="auto"
+      ;;
+      5) JSTRING="none"
+      ;;
+      *) JSTRING=""
+      ;;
+    esac
+    REPLACEMENT="$([ ! -z $JSTRING ] && echo "Storage=$JSTRING" || echo "#Storage=auto")"
+    sed --in-place -E "s/^#?Storage=.*/${REPLACEMENT}/" /etc/systemd/journald.conf
+    if [ "$INTERACTIVE" = True ]; then
+      whiptail --msgbox "Logging location set to ${JSTRING:-default}" 20 60 1
+    fi
+  fi
+}
+
 do_boot_behaviour() {
   if [ "$INTERACTIVE" = True ]; then
     BOOTOPT=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Boot Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
@@ -3565,6 +3599,7 @@ do_system_menu() {
       "S6 Splash Screen" "Choose graphical splash screen or text boot" \
       "S7 Power LED" "Set behaviour of power LED" \
       "S8 Browser" "Choose default web browser" \
+      "S9 Logging" "Set storage location for logs" \
       3>&1 1>&2 2>&3)
   elif is_live ; then
     FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "System Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
@@ -3595,6 +3630,7 @@ do_system_menu() {
       S6\ *) do_boot_splash ;;
       S7\ *) do_leds ;;
       S8\ *) do_browser ;;
+      S9\ *) do_journald_storage ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
