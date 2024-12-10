@@ -3526,6 +3526,14 @@ EOF
   fi
 }
 
+get_squeek_output (){
+  if [ -e /usr/share/squeekboard/output ] ; then
+    echo `grep SQUEEKBOARD_PREFERRED_OUTPUT /usr/share/squeekboard/output | cut -d = -f 2`
+  else
+    echo ""
+  fi
+}
+
 do_squeek_output() {
   PREFIX=""
   if [ -n "$SUDO_USER" ] ; then
