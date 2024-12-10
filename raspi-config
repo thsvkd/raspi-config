@@ -3471,20 +3471,20 @@ do_squeekboard() {
 [Desktop Entry]
 Name=Squeekboard
 Comment=Launch the on-screen keyboard
-Exec=/usr/bin/squeekboard
+Exec=/usr/bin/sbout
 Terminal=false
 Type=Application
 NoDisplay=true
 EOF
       sed -i '/sbtest/d' /usr/share/labwc/autostart
-      if ! grep -q squeekboard /usr/share/labwc/autostart ; then
-        echo "/usr/bin/squeekboard &" >> /usr/share/labwc/autostart
+      if ! grep -q sbout /usr/share/labwc/autostart ; then
+        echo "/usr/bin/sbout &" >> /usr/share/labwc/autostart
       fi
       PREFIX=""
       if [ -n "$SUDO_USER" ] ; then
         PREFIX="sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus "
       fi
-      $PREFIX squeekboard > /dev/null 2> /dev/null &
+      $PREFIX sbout > /dev/null 2> /dev/null &
       STATUS="enabled"
       ;;
     S2*)
@@ -3498,7 +3498,7 @@ Terminal=false
 Type=Application
 NoDisplay=true
 EOF
-      sed -i '/squeekboard/d' /usr/share/labwc/autostart
+      sed -i '/sbout/d' /usr/share/labwc/autostart
       if ! grep -q sbtest /usr/share/labwc/autostart ; then
         echo "/usr/bin/sbtest &" >> /usr/share/labwc/autostart
       fi
@@ -3513,7 +3513,7 @@ EOF
     S3*)
       pkill squeekboard
       rm -f /etc/xdg/autostart/squeekboard.desktop
-      sed -i '/squeekboard/d' /usr/share/labwc/autostart
+      sed -i '/sbout/d' /usr/share/labwc/autostart
       sed -i '/sbtest/d' /usr/share/labwc/autostart
       STATUS="disabled"
       ;;
@@ -3526,6 +3526,37 @@ EOF
   fi
 }
 
+do_squeek_output() {
+  PREFIX=""
+  if [ -n "$SUDO_USER" ] ; then
+    PREFIX="sudo -u $USER XDG_RUNTIME_DIR=/run/user/$SUDO_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$SUDO_UID/bus "
+  fi
+  if [ "$INTERACTIVE" = True ]; then
+    menu=$($PREFIX wlr-randr | grep -v ^' ' | cut -d ' ' -f 1 | tr '\n' '/' | sed 's#/#//#g')
+    oIFS="$IFS"
+    IFS="/"
+    OPT=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Select where the on-screen keyboard is to be shown" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT \
+      ${menu} \
+      3>&1 1>&2 2>&3)
+    IFS="$oIFS"
+  else
+    OPT=$1
+    true
+  fi
+  mkdir -p /usr/share/squeekboard/
+  echo "#!/bin/sh\nexport SQUEEKBOARD_PREFERRED_OUTPUT=$OPT" > /usr/share/squeekboard/output
+  chmod a+x /usr/share/squeekboard/output
+  if pgrep sbtest > /dev/null ; then
+    pkill squeekboard
+    $PREFIX sbtest > /dev/null 2> /dev/null &
+  elif pgrep squeekboard > /dev/null ; then
+    pkill squeekboard
+    $PREFIX sbout > /dev/null 2> /dev/null &
+  fi
+  if [ "$INTERACTIVE" = True ]; then
+    whiptail --msgbox "The onscreen keyboard is on $OPT" 20 60 1
+  fi
+}
 
 nonint() {
   "$@"
@@ -3560,6 +3591,7 @@ do
     ;;
   nonint)
     INTERACTIVE=False
+    #echo "$@"
     "$@"
     exit $?
     ;;
@@ -3645,12 +3677,14 @@ do_display_menu() {
           "D4 Composite" "Enable/disable composite output" \
           "D5 4Kp60 HDMI" "Enable 4Kp60 resolution on HDMI0" \
           "D6 Onscreen Keyboard" "Enable on-screen keyboard" \
+          "D7 Keyboard Output" "Select monitor used for on-screen keyboard" \
           3>&1 1>&2 2>&3)
       else
         FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Display Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
           "D2 Screen Blanking" "Enable/disable screen blanking" \
           "D4 Composite" "Enable/disable composite output" \
           "D6 Onscreen Keyboard" "Enable on-screen keyboard" \
+          "D7 Keyboard Output" "Select monitor used for on-screen keyboard" \
           3>&1 1>&2 2>&3)
       fi
     else
@@ -3688,6 +3722,7 @@ do_display_menu() {
       D4\ *) do_composite ;;
       D5\ *) do_pi4video ;;
       D6\ *) do_squeekboard ;;
+      D7\ *) do_squeek_output ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
