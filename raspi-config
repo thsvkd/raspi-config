@@ -1359,7 +1359,11 @@ get_serial_hw() {
 
 do_serial_cons() {
   if [ $1 -eq 0 ] ; then
-    if grep -q "console=ttyAMA0" $CMDLINE ; then
+    if is_pifive ; then
+      if [ -e /proc/device-tree/aliases/serial0 ]; then
+        sed -i $CMDLINE -e "s/console=serial0/console=ttyAMA0/"
+      fi
+    elif grep -q "console=ttyAMA0" $CMDLINE ; then
       if [ -e /proc/device-tree/aliases/serial0 ]; then
         sed -i $CMDLINE -e "s/console=ttyAMA0/console=serial0/"
       fi
@@ -1371,8 +1375,12 @@ do_serial_cons() {
       fi
     fi
   else
-    sed -i $CMDLINE -e "s/console=ttyAMA0,[0-9]\+ //"
-    sed -i $CMDLINE -e "s/console=serial0,[0-9]\+ //"
+    if is_pifive ; then
+      sed -i $CMDLINE -e "s/console=ttyAMA0/console=serial0/"
+    else
+      sed -i $CMDLINE -e "s/console=ttyAMA0,[0-9]\+ //"
+      sed -i $CMDLINE -e "s/console=serial0,[0-9]\+ //"
+    fi
   fi
 }
 
